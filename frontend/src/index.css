@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-secondary text-gray-100;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary hover:bg-primary/90 text-white font-semibold py-2 px-4 rounded-lg transition-colors;
+  }
+  
+  .btn-secondary {
+    @apply bg-accent hover:bg-accent/80 text-white font-semibold py-2 px-4 rounded-lg transition-colors;
+  }
+  
+  .card {
+    @apply bg-accent rounded-lg shadow-lg p-6 border border-gray-700;
+  }
+  
+  .input-field {
+    @apply w-full bg-secondary border border-gray-600 rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-primary transition-colors;
+  }
+}
+
+/* Leaflet map styles */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  border-radius: 0.5rem;
+}
+
+.leaflet-popup-content-wrapper {
+  background-color: #16213e;
+  color: #eee;
+}
+
+.leaflet-popup-tip {
+  background-color: #16213e;
+}
+
+/* Kubu Raya boundary tooltip */
+.kuburaya-tooltip {
+  background-color: #e94560 !important;
+  color: white !important;
+  border: none !important;
+  font-weight: bold;
+  font-size: 13px;
+  padding: 4px 12px;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(233, 69, 96, 0.4);
+}
+
+.kuburaya-tooltip::before {
+  border-top-color: #e94560 !important;
+}
+
+/* Petugas marker pulse animation */
+.petugas-marker {
+  background: transparent !important;
+  border: none !important;
+}
