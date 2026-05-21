@@ -195,6 +195,32 @@ class RoadDamageController extends Controller
     }
 
     /**
+     * Bulk delete multiple road damage records
+     */
+    public function bulkDestroy(Request $request)
+    {
+        $request->validate([
+            'ids'   => 'required|array|min:1',
+            'ids.*' => 'integer|exists:road_damages,id',
+        ]);
+
+        $damages = RoadDamage::whereIn('id', $request->ids)->get();
+
+        foreach ($damages as $damage) {
+            if ($damage->image_path && Storage::disk('public')->exists($damage->image_path)) {
+                Storage::disk('public')->delete($damage->image_path);
+            }
+            $damage->delete();
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => count($request->ids) . ' data kerusakan berhasil dihapus.',
+            'deleted_count' => count($request->ids),
+        ]);
+    }
+
+    /**
      * Get statistics (fixed query bug)
      */
     public function statistics(Request $request)
@@ -240,6 +266,7 @@ class RoadDamageController extends Controller
     public function mapData(Request $request)
     {
         $query = RoadDamage::query()
+            ->with('trackingSession.user:id,name')
             ->whereNotNull('latitude')
             ->whereNotNull('longitude');
 
@@ -253,26 +280,30 @@ class RoadDamageController extends Controller
             $query->where('severity', $request->severity);
         }
 
-        $damages = $query->get(['id', 'damage_type', 'latitude', 'longitude',
-                'severity', 'status', 'confidence', 'area_cm2',
-                'created_at', 'image_path', 'tracking_session_id']);
+        $damages = $query->get([
+            'id', 'damage_type', 'latitude', 'longitude',
+            'severity', 'status', 'confidence', 'area_cm2',
+            'created_at', 'image_path', 'tracking_session_id',
+        ]);
 
         return response()->json([
             'success' => true,
             'markers' => $damages->map(function ($damage) {
                 return [
-                    'id' => $damage->id,
-                    'type' => $damage->damage_type,
-                    'lat' => $damage->latitude,
-                    'lng' => $damage->longitude,
-                    'severity' => $damage->severity,
-                    'status' => $damage->status,
-                    'confidence' => $damage->confidence,
-                    'area_cm2' => $damage->area_cm2,
-                    'created_at' => $damage->created_at->format('Y-m-d H:i:s'),
-                    'image_url' => Storage::url($damage->image_path)
+                    'id'           => $damage->id,
+                    'type'         => $damage->damage_type,
+                    'lat'          => $damage->latitude,
+                    'lng'          => $damage->longitude,
+                    'severity'     => $damage->severity,
+                    'status'       => $damage->status,
+                    'confidence'   => $damage->confidence,
+                    'area_cm2'     => $damage->area_cm2,
+                    'created_at'   => $damage->created_at->format('Y-m-d H:i:s'),
+                    'image_url'    => Storage::url($damage->image_path),
+                    'petugas_name' => $damage->trackingSession?->user?->name ?? null,
+                    'ruas_jalan'   => $damage->trackingSession?->ruas_jalan_name ?? null,
                 ];
-            })
+            }),
         ]);
     }
 }

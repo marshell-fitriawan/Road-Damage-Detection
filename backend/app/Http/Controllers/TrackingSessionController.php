@@ -30,11 +30,25 @@ class TrackingSessionController extends Controller
             ], 400);
         }
 
+        // Validasi titik mulai & akhir (opsional, tapi direkomendasikan)
+        $request->validate([
+            'start_point'      => 'nullable|array',
+            'start_point.lat'  => 'required_with:start_point|numeric|between:-90,90',
+            'start_point.lng'  => 'required_with:start_point|numeric|between:-180,180',
+            'end_point'        => 'nullable|array',
+            'end_point.lat'    => 'required_with:end_point|numeric|between:-90,90',
+            'end_point.lng'    => 'required_with:end_point|numeric|between:-180,180',
+            'ruas_jalan_name'  => 'nullable|string|max:255',
+        ]);
+
         $session = TrackingSession::create([
-            'user_id' => $user->id,
-            'started_at' => now(),
-            'route_path' => [],
-            'status' => 'active',
+            'user_id'         => $user->id,
+            'started_at'      => now(),
+            'route_path'      => [],
+            'status'          => 'active',
+            'start_point'     => $request->start_point,
+            'end_point'       => $request->end_point,
+            'ruas_jalan_name' => $request->ruas_jalan_name,
         ]);
 
         return response()->json([
@@ -170,7 +184,10 @@ class TrackingSessionController extends Controller
      */
     public function allHistory(Request $request)
     {
-        $query = TrackingSession::with('user:id,name,email')
+        $query = TrackingSession::with([
+                'user:id,name,email',
+                'roadDamages:id,tracking_session_id,damage_type,confidence,latitude,longitude,severity,status,image_path,created_at',
+            ])
             ->withCount('roadDamages')
             ->orderBy('created_at', 'desc');
 
@@ -185,6 +202,17 @@ class TrackingSessionController extends Controller
         }
 
         $sessions = $query->paginate(10);
+
+        // Konversi image_path ke image_url untuk setiap damage
+        $sessions->getCollection()->transform(function ($session) {
+            $session->road_damages->transform(function ($damage) {
+                $damage->image_url = $damage->image_path
+                    ? \Illuminate\Support\Facades\Storage::url($damage->image_path)
+                    : null;
+                return $damage;
+            });
+            return $session;
+        });
 
         return response()->json($sessions);
     }
@@ -208,6 +236,57 @@ class TrackingSessionController extends Controller
         return response()->json([
             'success' => true,
             'session' => $session,
+        ]);
+    }
+
+    /**
+     * Delete a single tracking session (admin only)
+     * Cascade deletes all road damages & their images
+     */
+    public function destroy(Request $request, $id)
+    {
+        $session = TrackingSession::with('roadDamages')->findOrFail($id);
+
+        // Hapus semua file gambar kerusakan
+        foreach ($session->roadDamages as $damage) {
+            if ($damage->image_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($damage->image_path)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($damage->image_path);
+            }
+        }
+
+        $session->delete(); // cascade deletes road_damages via FK
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Sesi tracking berhasil dihapus.',
+        ]);
+    }
+
+    /**
+     * Bulk delete tracking sessions (admin only)
+     */
+    public function bulkDestroy(Request $request)
+    {
+        $request->validate([
+            'ids'   => 'required|array|min:1',
+            'ids.*' => 'integer|exists:tracking_sessions,id',
+        ]);
+
+        $sessions = TrackingSession::with('roadDamages')->whereIn('id', $request->ids)->get();
+
+        foreach ($sessions as $session) {
+            foreach ($session->roadDamages as $damage) {
+                if ($damage->image_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($damage->image_path)) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($damage->image_path);
+                }
+            }
+            $session->delete();
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => count($request->ids) . ' sesi tracking berhasil dihapus.',
+            'deleted_count' => count($request->ids),
         ]);
     }
 
@@ -245,13 +324,16 @@ class TrackingSessionController extends Controller
                 $lastPosition = count($routePath) > 0 ? end($routePath) : null;
 
                 return [
-                    'id' => $session->id,
-                    'user' => $session->user,
-                    'started_at' => $session->started_at,
-                    'route_path' => $routePath,
-                    'last_position' => $lastPosition,
-                    'damages' => $session->roadDamages,
-                    'total_damages' => $session->roadDamages->count(),
+                    'id'              => $session->id,
+                    'user'            => $session->user,
+                    'started_at'      => $session->started_at,
+                    'route_path'      => $routePath,
+                    'last_position'   => $lastPosition,
+                    'start_point'     => $session->start_point,
+                    'end_point'       => $session->end_point,
+                    'ruas_jalan_name' => $session->ruas_jalan_name,
+                    'damages'         => $session->roadDamages,
+                    'total_damages'   => $session->roadDamages->count(),
                 ];
             }),
         ]);

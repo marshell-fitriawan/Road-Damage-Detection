@@ -40,6 +40,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/detect', [RoadDamageController::class, 'detect']);
 
         Route::get('/', [RoadDamageController::class, 'index']);
+        Route::post('/bulk-delete', [RoadDamageController::class, 'bulkDestroy']);
         Route::get('/{id}', [RoadDamageController::class, 'show']);
         Route::put('/{id}', [RoadDamageController::class, 'update']);
         Route::delete('/{id}', [RoadDamageController::class, 'destroy']);
@@ -73,5 +74,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Real-time: get all active tracking sessions for live map monitoring
         Route::get('/tracking-live', [TrackingSessionController::class, 'activeSessions']);
+
+        // Delete tracking sessions (cascade deletes road damages)
+        Route::delete('/tracking/{id}', [TrackingSessionController::class, 'destroy']);
+        Route::post('/tracking-bulk-delete', [TrackingSessionController::class, 'bulkDestroy']);
     });
 });

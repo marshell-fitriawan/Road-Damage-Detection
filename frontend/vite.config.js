@@ -1,24 +1,39 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import basicSsl from "@vitejs/plugin-basic-ssl";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), basicSsl()],
   server: {
+    host: true,
     port: 3000,
+    https: true,
     proxy: {
-      '/api': {
-        target: 'http://localhost:8000',
+      "/api": {
+        target: "http://localhost:8000",
         changeOrigin: true,
       },
-      '/storage': {
-        target: 'http://localhost:8000',
+      "/storage": {
+        target: "http://localhost:8000",
         changeOrigin: true,
       },
-      '/yolo': {
-        target: 'http://localhost:5000',
+      "/yolo": {
+        target: "http://localhost:5000",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/yolo/, '')
-      }
-    }
-  }
-})
+        rewrite: (path) => path.replace(/^\/yolo/, ""),
+      },
+    },
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "react-vendor": ["react", "react-dom", "react-router-dom"],
+          "leaflet-vendor": ["leaflet", "react-leaflet"],
+          "chart-vendor": ["chart.js", "react-chartjs-2"],
+          "ui-vendor": ["lucide-react", "axios", "date-fns"],
+        },
+      },
+    },
+  },
+});

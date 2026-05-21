@@ -15,12 +15,17 @@ class TrackingSession extends Model
         'ended_at',
         'route_path',
         'status',
+        'start_point',
+        'end_point',
+        'ruas_jalan_name',
     ];
 
     protected $casts = [
-        'started_at' => 'datetime',
-        'ended_at' => 'datetime',
-        'route_path' => 'array',
+        'started_at'  => 'datetime',
+        'ended_at'    => 'datetime',
+        'route_path'  => 'array',
+        'start_point' => 'array',  // {lat, lng}
+        'end_point'   => 'array',  // {lat, lng}
     ];
 
     /**

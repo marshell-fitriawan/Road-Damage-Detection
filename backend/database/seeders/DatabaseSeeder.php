@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -14,10 +13,11 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // Create default admin account
+        // Note: password di-hash otomatis oleh cast 'hashed' di model User
         User::create([
             'name' => 'Administrator',
             'email' => 'admin@admin.com',
-            'password' => Hash::make('admin123'),
+            'password' => 'admin123',
             'role' => 'admin',
             'is_active' => true,
         ]);
@@ -26,7 +26,7 @@ class DatabaseSeeder extends Seeder
         User::create([
             'name' => 'Petugas Lapangan 1',
             'email' => 'petugas@petugas.com',
-            'password' => Hash::make('petugas123'),
+            'password' => 'petugas123',
             'role' => 'petugas',
             'is_active' => true,
         ]);
