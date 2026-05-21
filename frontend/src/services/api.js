@@ -82,6 +82,11 @@ export const roadDamageService = {
     return response.data;
   },
 
+  bulkDelete: async (ids) => {
+    const response = await api.post('/road-damages/bulk-delete', { ids });
+    return response.data;
+  },
+
   getStatistics: async (filters = {}) => {
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([key, value]) => {
@@ -107,8 +112,19 @@ export const roadDamageService = {
 
 // ==================== TRACKING SERVICE ====================
 export const trackingService = {
-  start: async () => {
-    const response = await api.post('/tracking/start');
+  // routeData: { startPoint: {lat, lng}, endPoint: {lat, lng}, ruasJalanName: string|null }
+  start: async (routeData = null) => {
+    const payload = {};
+    if (routeData?.startPoint) {
+      payload.start_point = routeData.startPoint;
+    }
+    if (routeData?.endPoint) {
+      payload.end_point = routeData.endPoint;
+    }
+    if (routeData?.ruasJalanName) {
+      payload.ruas_jalan_name = routeData.ruasJalanName;
+    }
+    const response = await api.post('/tracking/start', payload);
     return response.data;
   },
 
@@ -156,6 +172,18 @@ export const trackingService = {
   // Admin: get all active tracking sessions for live map (real-time polling)
   getLiveSessions: async () => {
     const response = await api.get('/tracking-live');
+    return response.data;
+  },
+
+  // Admin: delete single session (cascade deletes road damages)
+  deleteSession: async (id) => {
+    const response = await api.delete(`/tracking/${id}`);
+    return response.data;
+  },
+
+  // Admin: bulk delete sessions
+  bulkDeleteSessions: async (ids) => {
+    const response = await api.post('/tracking-bulk-delete', { ids });
     return response.data;
   },
 };

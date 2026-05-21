@@ -26,40 +26,335 @@
   }
 }
 
-/* Leaflet map styles */
+/* ====================================================
+   LEAFLET MAP - BASE STYLES
+   ==================================================== */
 .leaflet-container {
   height: 100%;
   width: 100%;
   border-radius: 0.5rem;
+  transition: background-color 0.3s ease;
+  position: relative !important;
+  overflow: hidden;
 }
 
-.leaflet-popup-content-wrapper {
-  background-color: #16213e;
-  color: #eee;
+/* Pane di dalam container tetap absolute — tapi tidak container-nya */
+.leaflet-pane,
+.leaflet-tile-pane,
+.leaflet-overlay-pane,
+.leaflet-shadow-pane,
+.leaflet-marker-pane,
+.leaflet-tooltip-pane,
+.leaflet-popup-pane {
+  position: absolute;
 }
 
-.leaflet-popup-tip {
-  background-color: #16213e;
+/* Fix z-index agar tidak menimpa UI lain di luar peta */
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 400 !important;
 }
 
-/* Kubu Raya boundary tooltip */
-.kuburaya-tooltip {
+.leaflet-popup {
+  z-index: 500 !important;
+}
+
+/* Modal & overlay selalu di atas Leaflet */
+.modal-overlay {
+  z-index: 9999 !important;
+}
+
+/* ====================================================
+   DARK MODE STYLES
+   ==================================================== */
+.map-dark {
+  background-color: #1a1a2e;
+}
+
+.map-dark .leaflet-popup-content-wrapper {
+  background-color: #1a1a2e;
+  color: #f1f1f1;
+  border: 1px solid #2d3748;
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(233, 69, 96, 0.15);
+}
+
+.map-dark .leaflet-popup-content {
+  margin: 12px 16px;
+}
+
+.map-dark .leaflet-popup-tip {
+  background-color: #1a1a2e;
+  border: 1px solid #2d3748;
+}
+
+.map-dark .leaflet-popup-close-button {
+  color: #9ca3af !important;
+  font-size: 20px !important;
+  padding: 6px 8px !important;
+}
+
+.map-dark .leaflet-popup-close-button:hover {
+  color: #e94560 !important;
+}
+
+.map-dark .leaflet-control-zoom a {
+  background-color: #1a1a2e !important;
+  color: #f1f1f1 !important;
+  border-color: #2d3748 !important;
+}
+
+.map-dark .leaflet-control-zoom a:hover {
+  background-color: #2d3748 !important;
+  color: #e94560 !important;
+}
+
+.map-dark .leaflet-control-attribution {
+  background-color: rgba(26, 26, 46, 0.85) !important;
+  color: #6b7280 !important;
+  font-size: 10px;
+}
+
+.map-dark .leaflet-control-attribution a {
+  color: #9ca3af !important;
+}
+
+/* ====================================================
+   LIGHT MODE STYLES
+   ==================================================== */
+.map-light {
+  background-color: #f8fafc;
+}
+
+.map-light .leaflet-popup-content-wrapper {
+  background-color: #ffffff;
+  color: #1f2937;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+.map-light .leaflet-popup-content {
+  margin: 12px 16px;
+}
+
+.map-light .leaflet-popup-tip {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+}
+
+.map-light .leaflet-popup-close-button {
+  color: #6b7280 !important;
+  font-size: 20px !important;
+  padding: 6px 8px !important;
+}
+
+.map-light .leaflet-popup-close-button:hover {
+  color: #dc2626 !important;
+}
+
+.map-light .leaflet-control-zoom a {
+  background-color: #ffffff !important;
+  color: #374151 !important;
+  border-color: #d1d5db !important;
+}
+
+.map-light .leaflet-control-zoom a:hover {
+  background-color: #f3f4f6 !important;
+  color: #dc2626 !important;
+}
+
+.map-light .leaflet-control-attribution {
+  background-color: rgba(255, 255, 255, 0.85) !important;
+  color: #6b7280 !important;
+  font-size: 10px;
+}
+
+.map-light .leaflet-control-attribution a {
+  color: #4b5563 !important;
+}
+
+/* ====================================================
+   KUBU RAYA BOUNDARY TOOLTIP
+   ==================================================== */
+.kuburaya-tooltip.dark {
   background-color: #e94560 !important;
   color: white !important;
   border: none !important;
   font-weight: bold;
   font-size: 13px;
-  padding: 4px 12px;
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(233, 69, 96, 0.4);
+  padding: 5px 14px;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(233, 69, 96, 0.5);
 }
 
-.kuburaya-tooltip::before {
+.kuburaya-tooltip.dark::before {
   border-top-color: #e94560 !important;
 }
 
-/* Petugas marker pulse animation */
+.kuburaya-tooltip.light {
+  background-color: #dc2626 !important;
+  color: white !important;
+  border: none !important;
+  font-weight: bold;
+  font-size: 13px;
+  padding: 5px 14px;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
+}
+
+.kuburaya-tooltip.light::before {
+  border-top-color: #dc2626 !important;
+}
+
+/* ====================================================
+   ROAD TOOLTIP
+   ==================================================== */
+.road-tooltip.dark {
+  background-color: rgba(26, 26, 46, 0.95) !important;
+  color: #f1f1f1 !important;
+  border: 1px solid #4a5568 !important;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.road-tooltip.dark::before {
+  border-top-color: rgba(26, 26, 46, 0.95) !important;
+}
+
+.road-tooltip.light {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  color: #1f2937 !important;
+  border: 1px solid #d1d5db !important;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.road-tooltip.light::before {
+  border-top-color: rgba(255, 255, 255, 0.95) !important;
+}
+
+/* ====================================================
+   KECAMATAN HIGHLIGHT TOOLTIP
+   ==================================================== */
+.kecamatan-highlight-tooltip.dark {
+  background-color: rgba(26, 26, 46, 0.95) !important;
+  color: white !important;
+  border: 2px solid currentColor !important;
+  font-weight: bold;
+  font-size: 14px;
+  padding: 6px 16px;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+  letter-spacing: 0.5px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.kecamatan-highlight-tooltip.dark::before {
+  display: none;
+}
+
+.kecamatan-highlight-tooltip.light {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  color: #1f2937 !important;
+  border: 2px solid currentColor !important;
+  font-weight: bold;
+  font-size: 14px;
+  padding: 6px 16px;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  letter-spacing: 0.5px;
+}
+
+.kecamatan-highlight-tooltip.light::before {
+  display: none;
+}
+
+/* ====================================================
+   RUAS JALAN TOOLTIP
+   ==================================================== */
+.ruas-tooltip.dark {
+  background-color: rgba(26, 26, 46, 0.92) !important;
+  color: #fbbf24 !important;
+  border: 1px solid #fbbf24 !important;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.ruas-tooltip.dark::before {
+  border-top-color: rgba(26, 26, 46, 0.92) !important;
+}
+
+.ruas-tooltip.light {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  color: #92400e !important;
+  border: 1px solid #d97706 !important;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.ruas-tooltip.light::before {
+  border-top-color: rgba(255, 255, 255, 0.95) !important;
+}
+
+/* Ruas highlight tooltip */
+.ruas-highlight-tooltip.dark {
+  background-color: #fbbf24 !important;
+  color: #1a1a2e !important;
+  border: none !important;
+  font-weight: bold;
+  font-size: 13px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(251, 191, 36, 0.4);
+}
+
+.ruas-highlight-tooltip.dark::before {
+  border-top-color: #fbbf24 !important;
+}
+
+.ruas-highlight-tooltip.light {
+  background-color: #b45309 !important;
+  color: #ffffff !important;
+  border: none !important;
+  font-weight: bold;
+  font-size: 13px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(180, 83, 9, 0.3);
+}
+
+.ruas-highlight-tooltip.light::before {
+  border-top-color: #b45309 !important;
+}
+
+/* ====================================================
+   PETUGAS MARKER
+   ==================================================== */
 .petugas-marker {
   background: transparent !important;
   border: none !important;
+}
+
+/* ====================================================
+   SCALE CONTROL
+   ==================================================== */
+.map-dark .leaflet-control-scale-line {
+  background-color: rgba(26, 26, 46, 0.8) !important;
+  color: #d1d5db !important;
+  border-color: #6b7280 !important;
+}
+
+.map-light .leaflet-control-scale-line {
+  background-color: rgba(255, 255, 255, 0.8) !important;
+  color: #374151 !important;
+  border-color: #9ca3af !important;
 }

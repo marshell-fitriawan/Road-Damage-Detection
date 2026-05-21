@@ -1,10 +1,19 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import RoadDamageMap from '../components/RoadDamageMap';
+import RoadDamageMap, { KECAMATAN_KUBU_RAYA } from '../components/RoadDamageMap';
 import { roadDamageService, trackingService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
-import { Filter, X, RefreshCw, Radio } from 'lucide-react';
+import { Filter, X, RefreshCw, Radio, MapPin, Sun, Moon, Route } from 'lucide-react';
 
 const POLL_INTERVAL = 5000; // Refresh setiap 5 detik
+
+// Hanya update state jika data benar-benar berubah — mencegah re-mount marker Leaflet
+const setIfChanged = (setter, newValue) => {
+  setter(prev => {
+    const prevJson = JSON.stringify(prev);
+    const newJson = JSON.stringify(newValue);
+    return prevJson === newJson ? prev : newValue;
+  });
+};
 
 const MapPage = () => {
   const { isAdmin } = useAuth();
@@ -14,8 +23,11 @@ const MapPage = () => {
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({ type: '', severity: '', status: '' });
-  const [selectedMarker, setSelectedMarker] = useState(null);
   const [isLiveMode, setIsLiveMode] = useState(true);
+  const [selectedArea, setSelectedArea] = useState('all');
+  const [mapMode, setMapMode] = useState('dark');
+  const [selectedRuas, setSelectedRuas] = useState('');
+  const [ruasList, setRuasList] = useState([]);
   const [lastUpdate, setLastUpdate] = useState(null);
   const pollRef = useRef(null);
 
@@ -70,21 +82,26 @@ const MapPage = () => {
       const results = await Promise.all(promises);
 
       // Markers kerusakan
-      setMarkers(results[0].markers || []);
+      setIfChanged(setMarkers, results[0].markers || []);
 
       // Completed routes (garis putus-putus)
       const completedRoutes = (results[1].data || [])
-        .filter(s => s.route_path && s.route_path.length > 1)
-        .map((s, i) => ({
-          path: s.route_path,
+        .filter(s => (s.route_path && s.route_path.length > 1) || (s.road_damages && s.road_damages.length > 0))
+        .map((s) => ({
+          id: s.id,
+          path: s.route_path || [],
           color: '#6b7280',
           userName: s.user?.name || 'Petugas',
+          start_point: s.start_point || null,
+          end_point: s.end_point || null,
+          ruas_jalan_name: s.ruas_jalan_name || null,
+          damages: s.road_damages || [],
         }));
-      setRoutePaths(completedRoutes);
+      setIfChanged(setRoutePaths, completedRoutes);
 
       // Live tracking sessions (admin only)
       if (isAdmin() && results[2]) {
-        setLiveTracking(results[2].sessions || []);
+        setIfChanged(setLiveTracking, results[2].sessions || []);
       }
 
       setLastUpdate(new Date());
@@ -97,7 +114,10 @@ const MapPage = () => {
     setFilters(prev => ({ ...prev, [key]: value === prev[key] ? '' : value }));
   };
 
-  const clearFilters = () => setFilters({ type: '', severity: '', status: '' });
+  const clearFilters = () => {
+    setFilters({ type: '', severity: '', status: '' });
+    setSelectedArea('all');
+  };
 
   const damageTypes = ['Retak-Buaya', 'Retak-Memanjang', 'Retak-Melintang', 'Lubang'];
   const severities = ['low', 'medium', 'high'];
@@ -106,7 +126,7 @@ const MapPage = () => {
   const activePetugasCount = liveTracking.length;
 
   return (
-    <div className="h-full flex-col space-y-4">
+    <div className="flex flex-col space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-3xl font-bold text-primary">Peta Kerusakan Jalan</h1>
         <div className="flex items-center gap-2">
@@ -122,13 +142,63 @@ const MapPage = () => {
               {isLiveMode ? 'LIVE' : 'LIVE OFF'}
             </button>
           )}
+          {/* Area/Kecamatan selector */}
+          <div className="flex items-center gap-1">
+            <MapPin className="w-4 h-4 text-primary" />
+            <select
+              value={selectedArea}
+              onChange={(e) => setSelectedArea(e.target.value)}
+              className="bg-accent border border-gray-600 text-gray-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-primary transition-colors"
+            >
+              {KECAMATAN_KUBU_RAYA.map(kec => (
+                <option key={kec.id} value={kec.id}>{kec.name}</option>
+              ))}
+            </select>
+          </div>
           <button onClick={() => refreshData()} className="btn-secondary flex items-center gap-2 text-sm">
             <RefreshCw className="w-4 h-4" /> Refresh
           </button>
           <button onClick={() => setShowFilters(!showFilters)} className="btn-secondary flex items-center gap-2 text-sm">
             <Filter className="w-4 h-4" /> Filter
           </button>
+          {/* Map mode toggle */}
+          <button
+            onClick={() => setMapMode(mapMode === 'dark' ? 'light' : 'dark')}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
+              mapMode === 'dark'
+                ? 'bg-gray-700 text-yellow-300 hover:bg-gray-600'
+                : 'bg-yellow-100 text-gray-800 hover:bg-yellow-200'
+            }`}
+            title={mapMode === 'dark' ? 'Ganti ke Light Mode' : 'Ganti ke Dark Mode'}
+          >
+            {mapMode === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            {mapMode === 'dark' ? 'Light' : 'Dark'}
+          </button>
         </div>
+      </div>
+
+      {/* Ruas Jalan Selector */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <Route className="w-4 h-4 text-yellow-400" />
+        <span className="text-sm text-gray-400">Ruas Jalan:</span>
+        <select
+          value={selectedRuas}
+          onChange={(e) => setSelectedRuas(e.target.value)}
+          className="bg-accent border border-gray-600 text-gray-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-primary transition-colors max-w-md"
+        >
+          <option value="">-- Semua Ruas (tampil semua) --</option>
+          {ruasList.map(name => (
+            <option key={name} value={name}>{name}</option>
+          ))}
+        </select>
+        {selectedRuas && (
+          <button
+            onClick={() => setSelectedRuas('')}
+            className="text-xs text-gray-400 hover:text-white flex items-center gap-1 px-2 py-1 rounded bg-gray-700 hover:bg-gray-600"
+          >
+            <X className="w-3 h-3" /> Reset
+          </button>
+        )}
       </div>
 
       {/* Live tracking info */}
@@ -208,19 +278,30 @@ const MapPage = () => {
               Petugas (live)
             </div>
             <div className="flex items-center gap-1">
-              <div className="w-6 h-0.5 bg-blue-400"></div> Rute Live
+              <div className="w-6 h-0.5 bg-blue-400"></div> Rute GPS Live
             </div>
             <div className="flex items-center gap-1">
-              <div className="w-6 h-0.5 bg-gray-400 border-dashed border-t-2 border-gray-400"></div> Rute Selesai
+              <div className="w-6 h-0.5 bg-gray-400 border-dashed border-t-2 border-gray-400"></div> Rute GPS Selesai
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 rounded-full bg-green-500 text-white text-xs flex items-center justify-center font-bold">A</div>
+              Titik Mulai
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold">B</div>
+              Titik Akhir
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-6 border-t-2 border-dashed border-yellow-400"></div> Target Ruas (A→B)
             </div>
           </>
         )}
       </div>
 
       {/* Map */}
-      <div className="flex-1 card p-0 overflow-hidden" style={{ minHeight: '500px' }}>
+      <div className="card p-0 overflow-hidden rounded-xl border border-gray-700 relative" style={{ height: '60vh', minHeight: '400px', maxHeight: '600px' }}>
         {loading ? (
-          <div className="flex items-center justify-center h-full" style={{ minHeight: '500px' }}>
+          <div className="flex items-center justify-center h-full" style={{ height: '75vh', minHeight: '500px' }}>
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
           </div>
         ) : (
@@ -228,69 +309,27 @@ const MapPage = () => {
             markers={markers}
             routePaths={routePaths}
             liveTracking={liveTracking}
-            onMarkerClick={setSelectedMarker}
+            selectedArea={selectedArea}
+            mapMode={mapMode}
+            selectedRuas={selectedRuas || null}
+            onRuasListLoaded={setRuasList}
           />
         )}
       </div>
 
       {/* Footer info */}
       <div className="flex items-center justify-between text-sm text-gray-400">
-        <span>Menampilkan {markers.length} titik kerusakan — Kabupaten Kubu Raya</span>
+        <span>
+          Menampilkan {markers.length} titik kerusakan — {
+            selectedArea === 'all' 
+              ? 'Kabupaten Kubu Raya' 
+              : KECAMATAN_KUBU_RAYA.find(k => k.id === selectedArea)?.name || 'Kabupaten Kubu Raya'
+          }
+        </span>
         {lastUpdate && (
           <span>Terakhir diperbarui: {lastUpdate.toLocaleTimeString('id-ID')}</span>
         )}
       </div>
-
-      {/* Detail Modal */}
-      {selectedMarker && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="card max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold text-primary">{selectedMarker.type}</h2>
-              <button onClick={() => setSelectedMarker(null)} className="text-gray-400 hover:text-white">
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            {selectedMarker.image_url && (
-              <img src={selectedMarker.image_url} alt={selectedMarker.type} className="w-full rounded-lg mb-4" />
-            )}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-gray-400">Tingkat Keparahan</p>
-                <p className={`font-bold text-lg ${
-                  selectedMarker.severity === 'high' ? 'text-red-500' :
-                  selectedMarker.severity === 'medium' ? 'text-yellow-500' : 'text-green-500'
-                }`}>{selectedMarker.severity.toUpperCase()}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-400">Status</p>
-                <p className={`font-bold text-lg ${
-                  selectedMarker.status === 'repaired' ? 'text-green-500' :
-                  selectedMarker.status === 'verified' ? 'text-blue-500' : 'text-yellow-500'
-                }`}>{selectedMarker.status.toUpperCase()}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-400">Confidence</p>
-                <p className="font-bold">{(selectedMarker.confidence * 100).toFixed(1)}%</p>
-              </div>
-              {selectedMarker.area_cm2 && (
-                <div>
-                  <p className="text-sm text-gray-400">Luas Kerusakan</p>
-                  <p className="font-bold">{selectedMarker.area_cm2.toFixed(1)} cm²</p>
-                </div>
-              )}
-              <div>
-                <p className="text-sm text-gray-400">Koordinat</p>
-                <p className="font-mono text-sm">{selectedMarker.lat.toFixed(6)}, {selectedMarker.lng.toFixed(6)}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-400">Waktu Deteksi</p>
-                <p>{new Date(selectedMarker.created_at).toLocaleString('id-ID')}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
