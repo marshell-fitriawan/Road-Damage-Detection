@@ -18,7 +18,7 @@ echo  [1/3] Starting YOLO API...
 start "YOLO-API" /MIN cmd /c "cd /d "%PROJECT_PATH%" && python api.py"
 
 echo  [2/3] Starting Laravel Backend...
-start "Laravel-Backend" /MIN cmd /c "cd /d "%PROJECT_PATH%backend" && "%PHP_PATH%\php.exe" artisan serve --port=8000"
+start "Laravel-Backend" /MIN cmd /c "cd /d "%PROJECT_PATH%backend" && "%PHP_PATH%\php.exe" artisan serve --host=0.0.0.0 --port=8000"
 
 echo  [3/3] Starting React Frontend...
 start "React-Frontend" /MIN cmd /c "cd /d "%PROJECT_PATH%frontend" && npm run dev"
@@ -33,14 +33,15 @@ echo    SEMUA SERVICE BERJALAN!
 echo  =============================================
 echo.
 echo   YOLO API        http://localhost:5000
-echo   Laravel Backend  http://localhost:8000
-echo   React Frontend   http://localhost:3000
+echo   Laravel Backend  http://0.0.0.0:8000
+echo   React Frontend   http://0.0.0.0:3000
 echo.
 echo   AKUN LOGIN:
 echo   Admin    : admin@admin.com / admin123
 echo   Petugas  : petugas@petugas.com / petugas123
 echo.
 echo   Buka browser: http://localhost:3000
+echo   Dari HP: https://192.168.x.x:3000 (ganti dengan IP PC)
 echo.
 echo  =============================================
 echo   Tekan tombol apa saja untuk STOP semua...

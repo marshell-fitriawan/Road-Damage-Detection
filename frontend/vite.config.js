@@ -5,9 +5,12 @@ import basicSsl from "@vitejs/plugin-basic-ssl";
 export default defineConfig({
   plugins: [react(), basicSsl()],
   server: {
-    host: true,
+    host: "0.0.0.0",
     port: 3000,
     https: true,
+    headers: {
+      "Cache-Control": "public, max-age=3600",
+    },
     proxy: {
       "/api": {
         target: "http://localhost:8000",
@@ -24,6 +27,20 @@ export default defineConfig({
       },
     },
   },
+  optimizeDeps: {
+    include: [
+      "react",
+      "react-dom",
+      "react-router-dom",
+      "axios",
+      "leaflet",
+      "react-leaflet",
+      "chart.js",
+      "react-chartjs-2",
+      "lucide-react",
+      "date-fns",
+    ],
+  },
   build: {
     rollupOptions: {
       output: {
@@ -35,5 +52,6 @@ export default defineConfig({
         },
       },
     },
+    minify: "terser",
   },
 });

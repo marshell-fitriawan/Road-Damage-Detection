@@ -1,18 +1,18 @@
-import axios from 'axios';
+import axios from "axios";
 
-const API_BASE_URL = '/api';
+const API_BASE_URL = "/api";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
 // Add token from localStorage on startup
-const token = localStorage.getItem('token');
+const token = localStorage.getItem("token");
 if (token) {
-  api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 }
 
 // Response interceptor for auth errors
@@ -20,29 +20,29 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      delete api.defaults.headers.common['Authorization'];
+      localStorage.removeItem("token");
+      delete api.defaults.headers.common["Authorization"];
       // Only redirect if not already on login page
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
       }
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 // ==================== AUTH SERVICE ====================
 export const authService = {
   login: async (email, password) => {
-    const response = await api.post('/login', { email, password });
+    const response = await api.post("/login", { email, password });
     return response.data;
   },
   logout: async () => {
-    const response = await api.post('/logout');
+    const response = await api.post("/logout");
     return response.data;
   },
   me: async () => {
-    const response = await api.get('/me');
+    const response = await api.get("/me");
     return response.data;
   },
 };
@@ -52,7 +52,7 @@ export const roadDamageService = {
   getAll: async (filters = {}) => {
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([key, value]) => {
-      if (value !== '' && value !== null && value !== undefined) {
+      if (value !== "" && value !== null && value !== undefined) {
         params.append(key, value);
       }
     });
@@ -66,8 +66,8 @@ export const roadDamageService = {
   },
 
   detect: async (formData) => {
-    const response = await api.post('/road-damages/detect', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+    const response = await api.post("/road-damages/detect", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
     });
     return response.data;
   },
@@ -83,29 +83,33 @@ export const roadDamageService = {
   },
 
   bulkDelete: async (ids) => {
-    const response = await api.post('/road-damages/bulk-delete', { ids });
+    const response = await api.post("/road-damages/bulk-delete", { ids });
     return response.data;
   },
 
   getStatistics: async (filters = {}) => {
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([key, value]) => {
-      if (value !== '' && value !== null && value !== undefined) {
+      if (value !== "" && value !== null && value !== undefined) {
         params.append(key, value);
       }
     });
-    const response = await api.get(`/road-damages/stats/summary?${params.toString()}`);
+    const response = await api.get(
+      `/road-damages/stats/summary?${params.toString()}`,
+    );
     return response.data;
   },
 
   getMapMarkers: async (filters = {}) => {
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([key, value]) => {
-      if (value !== '' && value !== null && value !== undefined) {
+      if (value !== "" && value !== null && value !== undefined) {
         params.append(key, value);
       }
     });
-    const response = await api.get(`/road-damages/map/markers?${params.toString()}`);
+    const response = await api.get(
+      `/road-damages/map/markers?${params.toString()}`,
+    );
     return response.data;
   },
 };
@@ -124,7 +128,7 @@ export const trackingService = {
     if (routeData?.ruasJalanName) {
       payload.ruas_jalan_name = routeData.ruasJalanName;
     }
-    const response = await api.post('/tracking/start', payload);
+    const response = await api.post("/tracking/start", payload);
     return response.data;
   },
 
@@ -134,7 +138,10 @@ export const trackingService = {
   },
 
   updateRoute: async (sessionId, latitude, longitude) => {
-    const response = await api.post(`/tracking/${sessionId}/route`, { latitude, longitude });
+    const response = await api.post(`/tracking/${sessionId}/route`, {
+      latitude,
+      longitude,
+    });
     return response.data;
   },
 
@@ -144,7 +151,7 @@ export const trackingService = {
   },
 
   getActiveSession: async () => {
-    const response = await api.get('/tracking/active');
+    const response = await api.get("/tracking/active");
     return response.data;
   },
 
@@ -155,11 +162,24 @@ export const trackingService = {
 
   getAllHistory: async (filters = {}) => {
     const params = new URLSearchParams();
+
+    // Handle page parameter
+    if (filters.page) {
+      params.append("page", filters.page);
+    }
+
+    // Handle filter parameters
     Object.entries(filters).forEach(([key, value]) => {
-      if (value !== '' && value !== null && value !== undefined) {
+      if (
+        key !== "page" &&
+        value !== "" &&
+        value !== null &&
+        value !== undefined
+      ) {
         params.append(key, value);
       }
     });
+
     const response = await api.get(`/tracking-all?${params.toString()}`);
     return response.data;
   },
@@ -171,7 +191,7 @@ export const trackingService = {
 
   // Admin: get all active tracking sessions for live map (real-time polling)
   getLiveSessions: async () => {
-    const response = await api.get('/tracking-live');
+    const response = await api.get("/tracking-live");
     return response.data;
   },
 
@@ -183,7 +203,7 @@ export const trackingService = {
 
   // Admin: bulk delete sessions
   bulkDeleteSessions: async (ids) => {
-    const response = await api.post('/tracking-bulk-delete', { ids });
+    const response = await api.post("/tracking-bulk-delete", { ids });
     return response.data;
   },
 };
@@ -193,7 +213,7 @@ export const userService = {
   getAll: async (filters = {}) => {
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([key, value]) => {
-      if (value !== '' && value !== null && value !== undefined) {
+      if (value !== "" && value !== null && value !== undefined) {
         params.append(key, value);
       }
     });
@@ -202,7 +222,7 @@ export const userService = {
   },
 
   create: async (data) => {
-    const response = await api.post('/users', data);
+    const response = await api.post("/users", data);
     return response.data;
   },
 

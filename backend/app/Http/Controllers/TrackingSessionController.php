@@ -184,37 +184,52 @@ class TrackingSessionController extends Controller
      */
     public function allHistory(Request $request)
     {
-        $query = TrackingSession::with([
-                'user:id,name,email',
-                'roadDamages:id,tracking_session_id,damage_type,confidence,latitude,longitude,severity,status,image_path,created_at',
-            ])
-            ->withCount('roadDamages')
-            ->orderBy('created_at', 'desc');
+        try {
+            $query = TrackingSession::with([
+                    'user:id,name,email',
+                    'roadDamages',
+                ])
+                ->withCount('roadDamages')
+                ->where('status', 'completed')
+                ->orderBy('created_at', 'desc');
 
-        // Filter by user
-        if ($request->has('user_id')) {
-            $query->where('user_id', $request->user_id);
-        }
+            // Filter by user
+            if ($request->has('user_id')) {
+                $query->where('user_id', $request->user_id);
+            }
 
-        // Filter by status
-        if ($request->has('status')) {
-            $query->where('status', $request->status);
-        }
+            // Filter by status (optional override)
+            if ($request->has('status')) {
+                $query->where('status', $request->status);
+            }
 
-        $sessions = $query->paginate(10);
+            $sessions = $query->paginate(10);
 
-        // Konversi image_path ke image_url untuk setiap damage
-        $sessions->getCollection()->transform(function ($session) {
-            $session->road_damages->transform(function ($damage) {
-                $damage->image_url = $damage->image_path
-                    ? \Illuminate\Support\Facades\Storage::url($damage->image_path)
-                    : null;
-                return $damage;
+            // Konversi image_path ke image_url untuk setiap damage
+            $sessions->getCollection()->transform(function ($session) {
+                if ($session->roadDamages && $session->roadDamages->count() > 0) {
+                    $session->roadDamages->each(function ($damage) {
+                        $damage->image_url = $damage->image_path
+                            ? \Illuminate\Support\Facades\Storage::url($damage->image_path)
+                            : null;
+                    });
+                }
+                return $session;
             });
-            return $session;
-        });
 
-        return response()->json($sessions);
+            return response()->json($sessions);
+        } catch (\Exception $e) {
+            \Log::error('TrackingSessionController@allHistory - ' . $e->getMessage(), [
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            return response()->json([
+                'error' => 'Server error: ' . $e->getMessage(),
+                'data' => [],
+            ], 500);
+        }
     }
 
     /**
