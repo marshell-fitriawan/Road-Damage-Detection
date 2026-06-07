@@ -584,6 +584,7 @@ const RoadDamageMap = ({
   mapMode = 'dark',
   selectedRuas = null,
   onRuasListLoaded,
+  filters = {},
 }) => {
   const petugasColors = ['#3b82f6', '#ef4444', '#22c55e', '#eab308', '#8b5cf6', '#f97316', '#ec4899'];
   const theme = THEMES[mapMode] || THEMES.dark;
@@ -593,6 +594,48 @@ const RoadDamageMap = ({
   const petugasIcons = useMemo(() => {
     return petugasColors.map(color => createPetugasIcon(color));
   }, []);
+
+  // Icon A (mulai) dan B (akhir) berwarna unik per rute — dibedakan agar admin tidak bingung
+  const routeIcons = useMemo(() => {
+    return petugasColors.map(color => ({
+      start: L.divIcon({
+        className: '',
+        html: `<div style="
+          width:28px;height:28px;background:${color};
+          border:3px solid white;border-radius:50%;
+          box-shadow:0 2px 10px rgba(0,0,0,0.6);
+          display:flex;align-items:center;justify-content:center;
+          font-size:12px;font-weight:bold;color:white;
+        ">A</div>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+      }),
+      end: L.divIcon({
+        className: '',
+        html: `<div style="
+          width:28px;height:28px;background:${color};
+          border:3px solid white;border-radius:50%;
+          box-shadow:0 2px 10px rgba(0,0,0,0.6);
+          display:flex;align-items:center;justify-content:center;
+          font-size:12px;font-weight:bold;color:white;
+          outline:3px dashed ${color};outline-offset:3px;
+        ">B</div>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+      }),
+    }));
+  }, []);
+
+  // Filter kerusakan sesuai filter aktif (type, severity, status)
+  const filterDamages = (damages) => {
+    if (!damages || damages.length === 0) return [];
+    return damages.filter(d => {
+      if (filters.type && d.damage_type !== filters.type) return false;
+      if (filters.severity && d.severity !== filters.severity) return false;
+      if (filters.status && d.status !== filters.status) return false;
+      return true;
+    });
+  };
 
   return (
     <MapContainer
@@ -633,7 +676,9 @@ const RoadDamageMap = ({
       <RuasJalanLayer selectedRuas={selectedRuas} mapMode={mapMode} onRuasListLoaded={onRuasListLoaded} />
 
       {/* ====== RUTE TRACKING YANG SUDAH SELESAI ====== */}
-      {routePaths.map((route, index) => (
+      {routePaths.map((route, index) => {
+        const rIcons = routeIcons[index % routeIcons.length];
+        return (
         <React.Fragment key={`route-done-${route.id || index}`}>
           {/* Garis rute aktual GPS - hanya render jika ada lebih dari 1 titik */}
           {route.path && route.path.length > 1 && (
@@ -647,43 +692,49 @@ const RoadDamageMap = ({
             />
           )}
 
-          {/* Garis target A→B mengikuti jalan (OSRM) */}
+          {/* Garis target A→B mengikuti jalan (OSRM) - warna sesuai rute */}
           {route.start_point && route.end_point && (
             <RouteTargetLine
               startPoint={route.start_point}
               endPoint={route.end_point}
-              color="#facc15"
+              color={route.color || '#facc15'}
             />
           )}
 
-          {/* Marker titik mulai (A) */}
+          {/* Marker titik mulai (A) — warna unik per petugas */}
           {route.start_point && (
-            <Marker position={[route.start_point.lat, route.start_point.lng]} icon={START_ICON}>
+            <Marker position={[route.start_point.lat, route.start_point.lng]} icon={rIcons.start}>
               <Popup>
-                <div style={{ color: theme.popupText }}>
-                  <p style={{ fontWeight: 'bold', color: '#22c55e', margin: '0 0 4px' }}>Titik Mulai (A)</p>
-                  {route.ruas_jalan_name && <p style={{ fontSize: '12px' }}>{route.ruas_jalan_name}</p>}
-                  {route.userName && <p style={{ fontSize: '11px', color: theme.popupMuted }}>Petugas: {route.userName}</p>}
+                <div style={{ color: theme.popupText, minWidth: '160px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                    <span style={{ background: route.color, color: 'white', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 'bold', flexShrink: 0 }}>A</span>
+                    <span style={{ fontWeight: 'bold', color: route.color, fontSize: '13px' }}>Titik Mulai</span>
+                  </div>
+                  {route.userName && <p style={{ fontSize: '13px', fontWeight: '700', margin: '2px 0', color: theme.popupText }}>{route.userName}</p>}
+                  {route.ruas_jalan_name && <p style={{ fontSize: '11px', color: theme.popupMuted, margin: '2px 0' }}>{route.ruas_jalan_name}</p>}
                 </div>
               </Popup>
             </Marker>
           )}
 
-          {/* Marker titik akhir (B) */}
+          {/* Marker titik akhir (B) — warna unik per petugas */}
           {route.end_point && (
-            <Marker position={[route.end_point.lat, route.end_point.lng]} icon={END_ICON}>
+            <Marker position={[route.end_point.lat, route.end_point.lng]} icon={rIcons.end}>
               <Popup>
-                <div style={{ color: theme.popupText }}>
-                  <p style={{ fontWeight: 'bold', color: '#ef4444', margin: '0 0 4px' }}>Titik Akhir (B)</p>
-                  {route.ruas_jalan_name && <p style={{ fontSize: '12px' }}>{route.ruas_jalan_name}</p>}
-                  {route.userName && <p style={{ fontSize: '11px', color: theme.popupMuted }}>Petugas: {route.userName}</p>}
+                <div style={{ color: theme.popupText, minWidth: '160px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                    <span style={{ background: route.color, color: 'white', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 'bold', flexShrink: 0, outline: `2px dashed ${route.color}`, outlineOffset: '2px' }}>B</span>
+                    <span style={{ fontWeight: 'bold', color: route.color, fontSize: '13px' }}>Titik Akhir</span>
+                  </div>
+                  {route.userName && <p style={{ fontSize: '13px', fontWeight: '700', margin: '2px 0', color: theme.popupText }}>{route.userName}</p>}
+                  {route.ruas_jalan_name && <p style={{ fontSize: '11px', color: theme.popupMuted, margin: '2px 0' }}>{route.ruas_jalan_name}</p>}
                 </div>
               </Popup>
             </Marker>
           )}
 
-          {/* Marker kerusakan dari rute yang sudah selesai */}
-          {(route.damages || []).map((damage) => (
+          {/* Marker kerusakan — difilter sesuai filter aktif */}
+          {filterDamages(route.damages || []).map((damage) => (
             damage.latitude && damage.longitude && (
               <CircleMarker
                 key={`done-dmg-${damage.id}`}
@@ -783,7 +834,8 @@ const RoadDamageMap = ({
             )
           ))}
         </React.Fragment>
-      ))}
+        );
+      })}
 
       {/* ====== LIVE TRACKING ====== */}
       {liveTracking.map((session, index) => {
@@ -887,7 +939,7 @@ const RoadDamageMap = ({
               </Marker>
             )}
 
-            {(session.damages || []).map((damage) => (
+            {filterDamages(session.damages || []).map((damage) => (
               damage.latitude && damage.longitude && (
                 <CircleMarker
                   key={`live-dmg-${damage.id}`}

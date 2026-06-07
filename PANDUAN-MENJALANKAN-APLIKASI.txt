@@ -151,6 +151,14 @@
 
   Setelah ketiga terminal berjalan, buka browser: http://localhost:3000
 
+  UNTUK DIBUKA DARI HP / DEVICE LAIN DI WIFI YANG SAMA:
+  - Pastikan laptop dan HP tersambung ke jaringan WiFi yang sama
+  - Cari IP laptop dengan perintah: ipconfig
+  - Buka di HP: https://192.168.70.77:3000
+    (ganti dengan IP WiFi laptop kamu sendiri)
+  - Jika muncul peringatan sertifikat, lanjutkan ke advanced/proceed
+  - Jika masih gagal, pastikan firewall Windows tidak memblokir port 3000, 8000, dan 5000
+
 ================================================================================
   LANGKAH 3: LOGIN
 ================================================================================
@@ -179,6 +187,8 @@
   YOLO API (Python)    http://localhost:5000      Model deteksi YOLOv8
   Laravel Backend      http://localhost:8000      API server + database
   React Frontend       http://localhost:3000      Tampilan web (BUKA INI)
+
+  Catatan akses HP: gunakan https://IP-LAPTOP:3000, bukan localhost.
 
 ================================================================================
   TROUBLESHOOTING (JIKA ADA MASALAH)

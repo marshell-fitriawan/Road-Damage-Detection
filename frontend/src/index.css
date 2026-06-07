@@ -49,19 +49,27 @@
   position: absolute;
 }
 
-/* Fix z-index agar tidak menimpa UI lain di luar peta */
+/* Leaflet controls (zoom, attribution) — z lebih rendah dari navbar (600) */
 .leaflet-top,
 .leaflet-bottom {
-  z-index: 400 !important;
+  z-index: 200 !important;
 }
 
 .leaflet-popup {
-  z-index: 500 !important;
+  z-index: 300 !important;
 }
 
-/* Modal & overlay selalu di atas Leaflet */
+/* Modal & overlay selalu di atas segalanya */
 .modal-overlay {
   z-index: 9999 !important;
+}
+
+/* Mobile navbar selalu di atas peta */
+.mobile-nav-overlay {
+  z-index: 800 !important;
+}
+.mobile-nav-drawer {
+  z-index: 900 !important;
 }
 
 /* ====================================================
