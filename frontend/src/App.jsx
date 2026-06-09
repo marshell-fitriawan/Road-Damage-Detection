@@ -7,6 +7,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { ThemeProvider } from "./contexts/ThemeContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import TopNavbar from "./components/TopNavbar";
 import LoginPage from "./pages/LoginPage";
@@ -28,10 +29,10 @@ const AppContent = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-secondary">
+      <div className="flex items-center justify-center h-screen" style={{ backgroundColor: 'var(--color-secondary)' }}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="text-gray-400 mt-4">Memuat sistem...</p>
+          <p className="mt-4" style={{ color: 'var(--color-text-muted)' }}>Memuat sistem...</p>
         </div>
       </div>
     );
@@ -180,12 +181,14 @@ const AppContent = () => {
 function App() {
   return (
     <Router>
-      <AuthProvider>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/*" element={<AppContent />} />
-        </Routes>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/*" element={<AppContent />} />
+          </Routes>
+        </AuthProvider>
+      </ThemeProvider>
     </Router>
   );
 }

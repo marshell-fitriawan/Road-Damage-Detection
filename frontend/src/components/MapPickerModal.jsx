@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTheme } from '../contexts/ThemeContext';
 import { MapContainer, TileLayer, Marker, Polyline, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -286,6 +287,7 @@ const RuasJalanLayer = ({ selectedRuas, onRuasListLoaded }) => {
  *   currentLocation  - { lat, lng } posisi petugas saat ini (dari GPS background)
  */
 const MapPickerModal = ({ isOpen, onClose, onConfirm, currentLocation = null }) => {
+  const { isDark } = useTheme();
   const [step, setStep] = useState('start'); // 'start' | 'end' | 'confirm'
   const [startPoint, setStartPoint] = useState(null);
   const [endPoint, setEndPoint] = useState(null);
@@ -385,13 +387,13 @@ const MapPickerModal = ({ isOpen, onClose, onConfirm, currentLocation = null }) 
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 9999,
-      background: 'rgba(0,0,0,0.75)',
+      background: isDark ? 'rgba(0,0,0,0.75)' : 'rgba(0,0,0,0.4)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: '16px',
     }}>
       <div style={{
-        background: '#1a1a2e',
-        border: '1px solid #2d2d44',
+        background: isDark ? '#1a1a2e' : '#ffffff',
+        border: isDark ? '1px solid #2d2d44' : '1px solid #e2e8f0',
         borderRadius: '12px',
         width: '100%',
         maxWidth: '800px',
@@ -401,65 +403,65 @@ const MapPickerModal = ({ isOpen, onClose, onConfirm, currentLocation = null }) 
         overflow: 'hidden',
       }}>
         {/* Header */}
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid #2d2d44', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ padding: '16px 20px', borderBottom: isDark ? '1px solid #2d2d44' : '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <h2 style={{ margin: 0, color: '#f1f1f1', fontSize: '18px', fontWeight: 'bold' }}>
+            <h2 style={{ margin: 0, color: isDark ? '#f1f1f1' : '#1e293b', fontSize: '18px', fontWeight: 'bold' }}>
               Tentukan Rute Inspeksi
             </h2>
-            <p style={{ margin: '4px 0 0', color: '#9ca3af', fontSize: '13px' }}>
+            <p style={{ margin: '4px 0 0', color: isDark ? '#9ca3af' : '#64748b', fontSize: '13px' }}>
               Pilih titik mulai dan akhir ruas jalan yang akan diinspeksi
             </p>
           </div>
           <button
             onClick={onClose}
-            style={{ background: 'none', border: 'none', color: '#9ca3af', fontSize: '24px', cursor: 'pointer', lineHeight: 1 }}
+            style={{ background: 'none', border: 'none', color: isDark ? '#9ca3af' : '#64748b', fontSize: '24px', cursor: 'pointer', lineHeight: 1 }}
           >×</button>
         </div>
 
         {/* Step indicator */}
-        <div style={{ padding: '12px 20px', background: '#16213e', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ padding: '12px 20px', background: isDark ? '#16213e' : '#f1f5f9', display: 'flex', alignItems: 'center', gap: '12px' }}>
           {/* Step A */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <div style={{
               width: '24px', height: '24px', borderRadius: '50%',
-              background: startPoint ? '#22c55e' : (step === 'start' ? '#22c55e' : '#374151'),
-              border: '2px solid ' + (step === 'start' ? '#22c55e' : (startPoint ? '#22c55e' : '#4b5563')),
+              background: startPoint ? '#22c55e' : (step === 'start' ? '#22c55e' : (isDark ? '#374151' : '#d1d5db')),
+              border: '2px solid ' + (step === 'start' ? '#22c55e' : (startPoint ? '#22c55e' : (isDark ? '#4b5563' : '#cbd5e1'))),
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: '11px', fontWeight: 'bold', color: 'white',
             }}>A</div>
-            <span style={{ color: startPoint ? '#22c55e' : (step === 'start' ? '#f1f1f1' : '#6b7280'), fontSize: '13px' }}>
+            <span style={{ color: startPoint ? '#22c55e' : (step === 'start' ? (isDark ? '#f1f1f1' : '#1e293b') : (isDark ? '#6b7280' : '#94a3b8')), fontSize: '13px' }}>
               Titik Mulai
             </span>
           </div>
 
-          <div style={{ flex: 1, height: '2px', background: startPoint ? '#22c55e' : '#374151', borderRadius: '1px' }} />
+          <div style={{ flex: 1, height: '2px', background: startPoint ? '#22c55e' : (isDark ? '#374151' : '#d1d5db'), borderRadius: '1px' }} />
 
           {/* Step B */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <div style={{
               width: '24px', height: '24px', borderRadius: '50%',
-              background: endPoint ? '#ef4444' : (step === 'end' ? '#ef4444' : '#374151'),
-              border: '2px solid ' + (step === 'end' ? '#ef4444' : (endPoint ? '#ef4444' : '#4b5563')),
+              background: endPoint ? '#ef4444' : (step === 'end' ? '#ef4444' : (isDark ? '#374151' : '#d1d5db')),
+              border: '2px solid ' + (step === 'end' ? '#ef4444' : (endPoint ? '#ef4444' : (isDark ? '#4b5563' : '#cbd5e1'))),
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: '11px', fontWeight: 'bold', color: 'white',
             }}>B</div>
-            <span style={{ color: endPoint ? '#ef4444' : (step === 'end' ? '#f1f1f1' : '#6b7280'), fontSize: '13px' }}>
+            <span style={{ color: endPoint ? '#ef4444' : (step === 'end' ? (isDark ? '#f1f1f1' : '#1e293b') : (isDark ? '#6b7280' : '#94a3b8')), fontSize: '13px' }}>
               Titik Akhir
             </span>
           </div>
 
-          <div style={{ flex: 1, height: '2px', background: endPoint ? '#3b82f6' : '#374151', borderRadius: '1px' }} />
+          <div style={{ flex: 1, height: '2px', background: endPoint ? '#3b82f6' : (isDark ? '#374151' : '#d1d5db'), borderRadius: '1px' }} />
 
           {/* Step Confirm */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <div style={{
               width: '24px', height: '24px', borderRadius: '50%',
-              background: step === 'confirm' ? '#3b82f6' : '#374151',
-              border: '2px solid ' + (step === 'confirm' ? '#3b82f6' : '#4b5563'),
+              background: step === 'confirm' ? '#3b82f6' : (isDark ? '#374151' : '#d1d5db'),
+              border: '2px solid ' + (step === 'confirm' ? '#3b82f6' : (isDark ? '#4b5563' : '#cbd5e1')),
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: '11px', fontWeight: 'bold', color: 'white',
             }}>✓</div>
-            <span style={{ color: step === 'confirm' ? '#f1f1f1' : '#6b7280', fontSize: '13px' }}>
+            <span style={{ color: step === 'confirm' ? (isDark ? '#f1f1f1' : '#1e293b') : (isDark ? '#6b7280' : '#94a3b8'), fontSize: '13px' }}>
               Konfirmasi
             </span>
           </div>
@@ -486,14 +488,14 @@ const MapPickerModal = ({ isOpen, onClose, onConfirm, currentLocation = null }) 
         </div>
 
         {/* Filter ruas jalan */}
-        <div style={{ padding: '10px 20px', background: '#0f0f23', borderBottom: '1px solid #2d2d44' }}>
+        <div style={{ padding: '10px 20px', background: isDark ? '#0f0f23' : '#f8fafc', borderBottom: isDark ? '1px solid #2d2d44' : '1px solid #e2e8f0' }}>
           <select
             value={selectedRuas}
             onChange={e => setSelectedRuas(e.target.value)}
             style={{
               width: '100%', padding: '8px 12px',
-              background: '#1a1a2e', border: '1px solid #374151',
-              borderRadius: '6px', color: '#f1f1f1', fontSize: '13px',
+              background: isDark ? '#1a1a2e' : '#ffffff', border: isDark ? '1px solid #374151' : '1px solid #d1d5db',
+              borderRadius: '6px', color: isDark ? '#f1f1f1' : '#1e293b', fontSize: '13px',
             }}
           >
             <option value="">-- Pilih Ruas Jalan (opsional, untuk highlight) --</option>
@@ -511,7 +513,7 @@ const MapPickerModal = ({ isOpen, onClose, onConfirm, currentLocation = null }) 
             minZoom={10}
             maxZoom={19}
             style={{ height: '100%', width: '100%', minHeight: '350px' }}
-            className="map-dark"
+            className={isDark ? 'map-dark' : 'map-light'}
           >
             <BoundsController />
             <TileLayer
@@ -580,7 +582,7 @@ const MapPickerModal = ({ isOpen, onClose, onConfirm, currentLocation = null }) 
           {(step === 'start' || step === 'end') && (
             <div style={{
               position: 'absolute', bottom: '12px', left: '50%', transform: 'translateX(-50%)',
-              background: 'rgba(0,0,0,0.75)', color: '#f1f1f1',
+              background: isDark ? 'rgba(0,0,0,0.75)' : 'rgba(0,0,0,0.4)', color: isDark ? '#f1f1f1' : '#1e293b',
               padding: '6px 14px', borderRadius: '20px', fontSize: '12px',
               pointerEvents: 'none', zIndex: 1000,
             }}>
@@ -592,7 +594,7 @@ const MapPickerModal = ({ isOpen, onClose, onConfirm, currentLocation = null }) 
           {routeLoading && (
             <div style={{
               position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
-              background: 'rgba(0,0,0,0.8)', color: '#60a5fa',
+              background: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.5)', color: '#60a5fa',
               padding: '12px 20px', borderRadius: '8px', fontSize: '13px',
               zIndex: 1000, display: 'flex', alignItems: 'center', gap: '8px',
             }}>
@@ -608,7 +610,7 @@ const MapPickerModal = ({ isOpen, onClose, onConfirm, currentLocation = null }) 
         </div>
 
         {/* Footer actions */}
-        <div style={{ padding: '14px 20px', borderTop: '1px solid #2d2d44', display: 'flex', gap: '10px', justifyContent: 'flex-end', background: '#0f0f23' }}>
+        <div style={{ padding: '14px 20px', borderTop: isDark ? '1px solid #2d2d44' : '1px solid #e2e8f0', display: 'flex', gap: '10px', justifyContent: 'flex-end', background: isDark ? '#0f0f23' : '#f8fafc' }}>
           {/* Info koordinat */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px', justifyContent: 'center' }}>
             {/* Posisi petugas */}
@@ -638,8 +640,8 @@ const MapPickerModal = ({ isOpen, onClose, onConfirm, currentLocation = null }) 
             onClick={handleReset}
             style={{
               padding: '8px 16px', borderRadius: '6px',
-              background: 'transparent', border: '1px solid #4b5563',
-              color: '#9ca3af', cursor: 'pointer', fontSize: '13px',
+              background: 'transparent', border: isDark ? '1px solid #4b5563' : '1px solid #cbd5e1',
+              color: isDark ? '#9ca3af' : '#64748b', cursor: 'pointer', fontSize: '13px',
             }}
           >
             Reset
@@ -649,8 +651,8 @@ const MapPickerModal = ({ isOpen, onClose, onConfirm, currentLocation = null }) 
             onClick={onClose}
             style={{
               padding: '8px 16px', borderRadius: '6px',
-              background: 'transparent', border: '1px solid #4b5563',
-              color: '#9ca3af', cursor: 'pointer', fontSize: '13px',
+              background: 'transparent', border: isDark ? '1px solid #4b5563' : '1px solid #cbd5e1',
+              color: isDark ? '#9ca3af' : '#64748b', cursor: 'pointer', fontSize: '13px',
             }}
           >
             Batal
@@ -661,9 +663,9 @@ const MapPickerModal = ({ isOpen, onClose, onConfirm, currentLocation = null }) 
             disabled={!startPoint || !endPoint || routeLoading}
             style={{
               padding: '8px 20px', borderRadius: '6px',
-              background: (startPoint && endPoint && !routeLoading) ? '#3b82f6' : '#374151',
+              background: (startPoint && endPoint && !routeLoading) ? '#3b82f6' : (isDark ? '#374151' : '#d1d5db'),
               border: 'none',
-              color: (startPoint && endPoint && !routeLoading) ? 'white' : '#6b7280',
+              color: (startPoint && endPoint && !routeLoading) ? 'white' : (isDark ? '#6b7280' : '#94a3b8'),
               cursor: (startPoint && endPoint && !routeLoading) ? 'pointer' : 'not-allowed',
               fontSize: '13px', fontWeight: '600',
             }}

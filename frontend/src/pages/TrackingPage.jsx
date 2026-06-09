@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { trackingService } from "../services/api";
+import { useTheme } from "../contexts/ThemeContext";
 import {
   Camera,
   StopCircle,
@@ -32,7 +33,7 @@ import MapPickerModal from "../components/MapPickerModal";
 
 const DETECTION_INTERVAL_MS = 800;
 const SEND_WIDTH = 640;
-const JPEG_QUALITY = 0.5;
+const JPEG_QUALITY = 0.7;
 const GPS_INTERVAL_MS = 1000;
 const GPS_MIN_DISTANCE_M = 5;
 
@@ -87,20 +88,20 @@ const KubuRayaBoundaryLayer = () => {
   const layerRef = useRef(null);
 
   useEffect(() => {
-    fetch('/kuburaya-boundary.json')
-      .then(res => res.json())
-      .then(data => {
+    fetch("/kuburaya-boundary.json")
+      .then((res) => res.json())
+      .then((data) => {
         if (layerRef.current && map.hasLayer(layerRef.current)) {
           map.removeLayer(layerRef.current);
         }
         const layer = L.geoJSON(data, {
           style: () => ({
-            color: '#facc15',
+            color: "#facc15",
             weight: 2.5,
             opacity: 0.85,
-            fillColor: '#facc15',
+            fillColor: "#facc15",
             fillOpacity: 0.04,
-            dashArray: '10, 6',
+            dashArray: "10, 6",
           }),
         });
         layer.addTo(map);
@@ -239,8 +240,13 @@ const CameraLandscapeOverlay = ({
 
     return () => {
       try {
-        if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen();
-        else if (document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen();
+        if (document.fullscreenElement && document.exitFullscreen)
+          document.exitFullscreen();
+        else if (
+          document.webkitFullscreenElement &&
+          document.webkitExitFullscreen
+        )
+          document.webkitExitFullscreen();
       } catch (e) {}
       document.body.style.overflow = "";
       document.body.style.position = "";
@@ -254,7 +260,9 @@ const CameraLandscapeOverlay = ({
     if (!video || !streamRef.current) return;
     video.srcObject = streamRef.current;
     video.play().catch(() => {});
-    return () => { if (video) video.srcObject = null; };
+    return () => {
+      if (video) video.srcObject = null;
+    };
   }, [streamRef]);
 
   // Draw bounding boxes — letterbox-aware
@@ -279,14 +287,19 @@ const CameraLandscapeOverlay = ({
         // objectFit: cover — video diisi penuh, di-crop bagian tepi
         const videoAR = video.videoWidth / video.videoHeight;
         const containerAR = cw / ch;
-        let rendW, rendH, offX = 0, offY = 0;
+        let rendW,
+          rendH,
+          offX = 0,
+          offY = 0;
         if (videoAR > containerAR) {
           // Video lebih lebar → fit height, crop kiri-kanan
-          rendH = ch; rendW = ch * videoAR;
+          rendH = ch;
+          rendW = ch * videoAR;
           offX = (cw - rendW) / 2; // negatif = geser ke kiri (cropped)
         } else {
           // Video lebih tinggi → fit width, crop atas-bawah
-          rendW = cw; rendH = cw / videoAR;
+          rendW = cw;
+          rendH = cw / videoAR;
           offY = (ch - rendH) / 2; // negatif = geser ke atas (cropped)
         }
         const sendH = SEND_WIDTH * (video.videoHeight / video.videoWidth);
@@ -302,25 +315,41 @@ const CameraLandscapeOverlay = ({
           const h = (bbox.y2 - bbox.y1) * sy;
           const color = getColorForClass(class_name);
 
-          ctx.shadowColor = color; ctx.shadowBlur = 14;
-          ctx.strokeStyle = color; ctx.lineWidth = 3;
-          ctx.strokeRect(x, y, w, h); ctx.shadowBlur = 0;
+          ctx.shadowColor = color;
+          ctx.shadowBlur = 14;
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 3;
+          ctx.strokeRect(x, y, w, h);
+          ctx.shadowBlur = 0;
 
           const cs = Math.min(w, h, 22);
           ctx.lineWidth = 5;
-          [[x, y], [x + w, y], [x, y + h], [x + w, y + h]].forEach(([cx, cy]) => {
-            const dx = cx === x ? 1 : -1; const dy = cy === y ? 1 : -1;
-            ctx.beginPath(); ctx.moveTo(cx + dx * cs, cy);
-            ctx.lineTo(cx, cy); ctx.lineTo(cx, cy + dy * cs); ctx.stroke();
+          [
+            [x, y],
+            [x + w, y],
+            [x, y + h],
+            [x + w, y + h],
+          ].forEach(([cx, cy]) => {
+            const dx = cx === x ? 1 : -1;
+            const dy = cy === y ? 1 : -1;
+            ctx.beginPath();
+            ctx.moveTo(cx + dx * cs, cy);
+            ctx.lineTo(cx, cy);
+            ctx.lineTo(cx, cy + dy * cs);
+            ctx.stroke();
           });
 
           const label = `${class_name}  ${(confidence * 100).toFixed(0)}%`;
           ctx.font = "bold 14px Arial";
           const tw = ctx.measureText(label).width;
-          const lx = x; const ly = y > 30 ? y - 28 : y + h + 4;
+          const lx = x;
+          const ly = y > 30 ? y - 28 : y + h + 4;
           ctx.fillStyle = color + "cc";
-          ctx.beginPath(); ctx.roundRect(lx, ly, tw + 14, 24, 5); ctx.fill();
-          ctx.fillStyle = "#fff"; ctx.fillText(label, lx + 7, ly + 17);
+          ctx.beginPath();
+          ctx.roundRect(lx, ly, tw + 14, 24, 5);
+          ctx.fill();
+          ctx.fillStyle = "#fff";
+          ctx.fillText(label, lx + 7, ly + 17);
         });
       }
       rafRef.current = requestAnimationFrame(draw);
@@ -332,32 +361,47 @@ const CameraLandscapeOverlay = ({
   // Render via Portal langsung ke document.body
   // → bypass ancestor transforms/overflow yang bisa bocorkan halaman lama
   return createPortal(
-    <div style={{
-      position: "fixed",
-      top: 0, left: 0, right: 0, bottom: 0,
-      zIndex: 2147483647,           // z-index maksimum
-      background: "#000",
-      display: "flex",
-      flexDirection: "column",
-      // Extend ke luar safe area agar benar-benar menutup semua
-      paddingTop: "env(safe-area-inset-top, 0px)",
-      paddingBottom: "env(safe-area-inset-bottom, 0px)",
-    }}>
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 2147483647, // z-index maksimum
+        background: "#000",
+        display: "flex",
+        flexDirection: "column",
+        // Extend ke luar safe area agar benar-benar menutup semua
+        paddingTop: "env(safe-area-inset-top, 0px)",
+        paddingBottom: "env(safe-area-inset-bottom, 0px)",
+      }}
+    >
       {/* Video fullscreen */}
       <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
         <video
           ref={ownVideoRef}
-          autoPlay playsInline muted
+          autoPlay
+          playsInline
+          muted
           style={{
-            position: "absolute", inset: 0,
-            width: "100%", height: "100%",
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
             objectFit: "cover",
             background: "#000",
           }}
         />
         <canvas
           ref={overlayCanvasRef}
-          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            pointerEvents: "none",
+          }}
         />
 
         {/* Close button */}
@@ -367,56 +411,126 @@ const CameraLandscapeOverlay = ({
             position: "absolute",
             top: "max(12px, env(safe-area-inset-top, 12px))",
             right: 12,
-            background: "rgba(0,0,0,0.75)", border: "1px solid rgba(255,255,255,0.25)",
-            borderRadius: "50%", width: 44, height: 44,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            cursor: "pointer", zIndex: 10,
+            background: "rgba(0,0,0,0.75)",
+            border: "1px solid rgba(255,255,255,0.25)",
+            borderRadius: "50%",
+            width: 44,
+            height: 44,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            zIndex: 10,
           }}
         >
           <X style={{ width: 20, height: 20, color: "#fff" }} />
         </button>
 
         {/* GPS + FPS badges */}
-        <div style={{
-          position: "absolute",
-          top: "max(12px, env(safe-area-inset-top, 12px))",
-          left: 12, display: "flex", gap: 6, zIndex: 10,
-        }}>
-          <div style={{
-            background: "rgba(0,0,0,0.72)", borderRadius: 14, padding: "5px 11px",
-            border: `1px solid ${gpsReady ? "rgba(34,197,94,0.5)" : "rgba(234,179,8,0.5)"}`,
-            display: "flex", alignItems: "center", gap: 5,
-          }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: gpsReady ? "#22c55e" : "#eab308", flexShrink: 0 }} />
-            <span style={{ color: gpsReady ? "#22c55e" : "#eab308", fontSize: 12, fontWeight: 600 }}>
+        <div
+          style={{
+            position: "absolute",
+            top: "max(12px, env(safe-area-inset-top, 12px))",
+            left: 12,
+            display: "flex",
+            gap: 6,
+            zIndex: 10,
+          }}
+        >
+          <div
+            style={{
+              background: "rgba(0,0,0,0.72)",
+              borderRadius: 14,
+              padding: "5px 11px",
+              border: `1px solid ${gpsReady ? "rgba(34,197,94,0.5)" : "rgba(234,179,8,0.5)"}`,
+              display: "flex",
+              alignItems: "center",
+              gap: 5,
+            }}
+          >
+            <span
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                background: gpsReady ? "#22c55e" : "#eab308",
+                flexShrink: 0,
+              }}
+            />
+            <span
+              style={{
+                color: gpsReady ? "#22c55e" : "#eab308",
+                fontSize: 12,
+                fontWeight: 600,
+              }}
+            >
               {gpsReady ? `GPS ±${gpsAccuracy ?? "?"}m` : "GPS..."}
             </span>
           </div>
-          <div style={{ background: "rgba(0,0,0,0.65)", borderRadius: 14, padding: "5px 11px", border: "1px solid rgba(255,255,255,0.12)" }}>
-            <span style={{ color: fps > 2 ? "#22c55e" : "#eab308", fontSize: 12, fontWeight: 600 }}>{fps} FPS</span>
+          <div
+            style={{
+              background: "rgba(0,0,0,0.65)",
+              borderRadius: 14,
+              padding: "5px 11px",
+              border: "1px solid rgba(255,255,255,0.12)",
+            }}
+          >
+            <span
+              style={{
+                color: fps > 2 ? "#22c55e" : "#eab308",
+                fontSize: 12,
+                fontWeight: 600,
+              }}
+            >
+              {fps} FPS
+            </span>
           </div>
           {savedDamages.length > 0 && (
-            <div style={{ background: "rgba(239,68,68,0.18)", borderRadius: 14, padding: "5px 11px", border: "1px solid rgba(239,68,68,0.4)" }}>
-              <span style={{ color: "#ef4444", fontSize: 12, fontWeight: 600 }}>💾 {savedDamages.length}</span>
+            <div
+              style={{
+                background: "rgba(239,68,68,0.18)",
+                borderRadius: 14,
+                padding: "5px 11px",
+                border: "1px solid rgba(239,68,68,0.4)",
+              }}
+            >
+              <span style={{ color: "#ef4444", fontSize: 12, fontWeight: 600 }}>
+                💾 {savedDamages.length}
+              </span>
             </div>
           )}
         </div>
 
         {/* Detection chips at bottom */}
         {detectionResults.length > 0 && (
-          <div style={{
-            position: "absolute",
-            bottom: "max(16px, env(safe-area-inset-bottom, 16px))",
-            left: 12, right: 12,
-            display: "flex", flexWrap: "wrap", gap: 5, justifyContent: "center", zIndex: 10,
-          }}>
+          <div
+            style={{
+              position: "absolute",
+              bottom: "max(16px, env(safe-area-inset-bottom, 16px))",
+              left: 12,
+              right: 12,
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 5,
+              justifyContent: "center",
+              zIndex: 10,
+            }}
+          >
             {detectionResults.map((d, i) => {
               const color = getColorForClass(d.class_name);
               return (
-                <span key={i} style={{
-                  background: color + "22", color, border: `1px solid ${color}66`,
-                  borderRadius: 20, padding: "4px 12px", fontSize: 12, fontWeight: 700,
-                }}>
+                <span
+                  key={i}
+                  style={{
+                    background: color + "22",
+                    color,
+                    border: `1px solid ${color}66`,
+                    borderRadius: 20,
+                    padding: "4px 12px",
+                    fontSize: 12,
+                    fontWeight: 700,
+                  }}
+                >
                   {d.class_name} · {(d.confidence * 100).toFixed(0)}%
                   {d.area_cm2 ? ` · ${d.area_cm2.toFixed(0)}cm²` : ""}
                 </span>
@@ -426,14 +540,14 @@ const CameraLandscapeOverlay = ({
         )}
       </div>
     </div>,
-    document.body  // ← render langsung ke body, bukan di dalam React tree
+    document.body, // ← render langsung ke body, bukan di dalam React tree
   );
 };
 
 /* ─────────────── Main Page ─────────────── */
 
-
 const TrackingPage = () => {
+  const { isDark } = useTheme();
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const sendCanvasRef = useRef(null);
@@ -443,11 +557,11 @@ const TrackingPage = () => {
   const detectingRef = useRef(false);
   const lastDetectionsRef = useRef([]);
   const overlayIntervalRef = useRef(null);
-  const locationRef   = useRef({ lat: null, lng: null });
-  const hasFlewOnce   = useRef(false);
+  const locationRef = useRef({ lat: null, lng: null });
+  const hasFlewOnce = useRef(false);
   const bgGpsWatchRef = useRef(null);
   // Buffer 8 posisi GPS terakhir untuk averaging — makin banyak sampel = makin stabil
-  const gpsBufferRef  = useRef([]);  // [{lat, lng, accuracy, ts}]
+  const gpsBufferRef = useRef([]); // [{lat, lng, accuracy, ts}]
 
   // Hitung posisi rata-rata GPS berbobot (accuracy lebih kecil = bobot lebih besar)
   const getAveragedLocation = () => {
@@ -456,8 +570,10 @@ const TrackingPage = () => {
     if (buf.length === 1) return { lat: buf[0].lat, lng: buf[0].lng };
     // Bobot = 1 / accuracy (lebih akurat = bobot besar)
     const totalW = buf.reduce((s, p) => s + 1 / p.accuracy, 0);
-    const avgLat = buf.reduce((s, p) => s + p.lat * (1 / p.accuracy), 0) / totalW;
-    const avgLng = buf.reduce((s, p) => s + p.lng * (1 / p.accuracy), 0) / totalW;
+    const avgLat =
+      buf.reduce((s, p) => s + p.lat * (1 / p.accuracy), 0) / totalW;
+    const avgLng =
+      buf.reduce((s, p) => s + p.lng * (1 / p.accuracy), 0) / totalW;
     return { lat: avgLat, lng: avgLng };
   };
 
@@ -669,8 +785,9 @@ const TrackingPage = () => {
     const mediaStream = await navigator.mediaDevices.getUserMedia({
       video: {
         facingMode: "environment",
-        width: { ideal: 640 },
-        height: { ideal: 480 },
+        width:     { ideal: 1920, min: 1280 },
+        height:    { ideal: 1080, min: 720  },
+        frameRate: { ideal: 30,   min: 24   },
       },
     });
     if (videoRef.current) {
@@ -700,12 +817,15 @@ const TrackingPage = () => {
       if (buf.length > 8) buf.shift();
       // Hapus posisi yang lebih dari 30 detik
       const now = Date.now();
-      gpsBufferRef.current = buf.filter(p => now - p.ts < 30000);
+      gpsBufferRef.current = buf.filter((p) => now - p.ts < 30000);
 
       const prev = locationRef.current;
       if (prev.lat && prev.lng) {
         const distance = getDistanceMeters(
-          prev.lat, prev.lng, latitude, longitude,
+          prev.lat,
+          prev.lng,
+          latitude,
+          longitude,
         );
         if (distance < GPS_MIN_DISTANCE_M) {
           setLocation({ lat: latitude, lng: longitude });
@@ -863,7 +983,7 @@ const TrackingPage = () => {
         image: imageBase64,
         damage_type: detection.class_name,
         confidence: detection.confidence,
-        latitude:  lat,
+        latitude: lat,
         longitude: lng,
       });
       setSavedDamages((prev) => [
@@ -871,7 +991,7 @@ const TrackingPage = () => {
         {
           damage_type: detection.class_name,
           confidence: detection.confidence,
-          latitude:  lat,
+          latitude: lat,
           longitude: lng,
           created_at: new Date().toISOString(),
         },
@@ -1190,10 +1310,13 @@ const TrackingPage = () => {
                 }}
                 zoomControl={true}
                 scrollWheelZoom={true}
-                className="map-dark"
+                className={isDark ? 'map-dark' : 'map-light'}
               >
                 <TileLayer
-                  url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                  url={isDark
+                    ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                    : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                  }
                   attribution="&copy; OpenStreetMap &copy; CARTO"
                   subdomains="abcd"
                   maxZoom={19}
@@ -1430,42 +1553,84 @@ const TrackingPage = () => {
 
       {/* ── Modal: Aktifkan Rotasi Otomatis ── */}
       {showRotateHint && (
-        <div style={{
-          position: "fixed", inset: 0, zIndex: 99998,
-          background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          padding: "20px",
-        }}>
-          <div style={{
-            background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",
-            border: "1px solid rgba(59,130,246,0.3)",
-            borderRadius: 20, padding: "28px 24px",
-            maxWidth: 340, width: "100%",
-            boxShadow: "0 25px 60px rgba(0,0,0,0.6)",
-          }}>
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 99998,
+            background: "rgba(0,0,0,0.75)",
+            backdropFilter: "blur(6px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px",
+          }}
+        >
+          <div
+            style={{
+              background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",
+              border: "1px solid rgba(59,130,246,0.3)",
+              borderRadius: 20,
+              padding: "28px 24px",
+              maxWidth: 340,
+              width: "100%",
+              boxShadow: "0 25px 60px rgba(0,0,0,0.6)",
+            }}
+          >
             {/* Icon */}
             <div style={{ textAlign: "center", marginBottom: 18 }}>
-              <div style={{
-                width: 64, height: 64, borderRadius: "50%",
-                background: "rgba(59,130,246,0.15)", border: "2px solid rgba(59,130,246,0.4)",
-                display: "inline-flex", alignItems: "center", justifyContent: "center",
-                fontSize: 30,
-              }}>📱</div>
+              <div
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: "50%",
+                  background: "rgba(59,130,246,0.15)",
+                  border: "2px solid rgba(59,130,246,0.4)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 30,
+                }}
+              >
+                📱
+              </div>
             </div>
 
             {/* Title */}
-            <h3 style={{ color: "#f1f5f9", fontSize: 17, fontWeight: 700, textAlign: "center", margin: "0 0 10px" }}>
+            <h3
+              style={{
+                color: "#f1f5f9",
+                fontSize: 17,
+                fontWeight: 700,
+                textAlign: "center",
+                margin: "0 0 10px",
+              }}
+            >
               Aktifkan Rotasi Otomatis
             </h3>
 
             {/* Body */}
-            <p style={{ color: "#94a3b8", fontSize: 13, lineHeight: 1.6, textAlign: "center", margin: "0 0 8px" }}>
+            <p
+              style={{
+                color: "#94a3b8",
+                fontSize: 13,
+                lineHeight: 1.6,
+                textAlign: "center",
+                margin: "0 0 8px",
+              }}
+            >
               Sebelum masuk mode fullscreen, pastikan fitur
             </p>
-            <div style={{
-              background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.25)",
-              borderRadius: 10, padding: "10px 14px", marginBottom: 20, textAlign: "center",
-            }}>
+            <div
+              style={{
+                background: "rgba(59,130,246,0.1)",
+                border: "1px solid rgba(59,130,246,0.25)",
+                borderRadius: 10,
+                padding: "10px 14px",
+                marginBottom: 20,
+                textAlign: "center",
+              }}
+            >
               <span style={{ color: "#60a5fa", fontWeight: 700, fontSize: 13 }}>
                 🔄 Rotasi Otomatis (Auto-Rotate)
               </span>
@@ -1474,8 +1639,16 @@ const TrackingPage = () => {
               </p>
             </div>
 
-            <p style={{ color: "#64748b", fontSize: 12, textAlign: "center", margin: "0 0 20px" }}>
-              Putar HP ke kiri/kanan untuk melihat kamera secara landscape setelah masuk fullscreen.
+            <p
+              style={{
+                color: "#64748b",
+                fontSize: 12,
+                textAlign: "center",
+                margin: "0 0 20px",
+              }}
+            >
+              Putar HP ke kiri/kanan untuk melihat kamera secara landscape
+              setelah masuk fullscreen.
             </p>
 
             {/* Buttons */}
@@ -1483,20 +1656,35 @@ const TrackingPage = () => {
               <button
                 onClick={() => setShowRotateHint(false)}
                 style={{
-                  flex: 1, padding: "12px", borderRadius: 12,
-                  background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
-                  color: "#94a3b8", fontSize: 14, fontWeight: 600, cursor: "pointer",
+                  flex: 1,
+                  padding: "12px",
+                  borderRadius: 12,
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  color: "#94a3b8",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: "pointer",
                 }}
               >
                 Batal
               </button>
               <button
-                onClick={() => { setShowRotateHint(false); setIsLandscapeOpen(true); }}
+                onClick={() => {
+                  setShowRotateHint(false);
+                  setIsLandscapeOpen(true);
+                }}
                 style={{
-                  flex: 1, padding: "12px", borderRadius: 12,
+                  flex: 1,
+                  padding: "12px",
+                  borderRadius: 12,
                   background: "linear-gradient(135deg, #3b82f6, #2563eb)",
-                  border: "none", color: "#fff", fontSize: 14, fontWeight: 700,
-                  cursor: "pointer", boxShadow: "0 4px 15px rgba(59,130,246,0.4)",
+                  border: "none",
+                  color: "#fff",
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  boxShadow: "0 4px 15px rgba(59,130,246,0.4)",
                 }}
               >
                 Sudah, Lanjutkan

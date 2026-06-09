@@ -10,6 +10,7 @@ import RoadDamageMap, {
 } from "../components/RoadDamageMap";
 import { roadDamageService, trackingService } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
+import { useTheme } from "../contexts/ThemeContext";
 import {
   Filter,
   X,
@@ -518,7 +519,8 @@ const MapPage = () => {
   });
   const [isLiveMode, setIsLiveMode] = useState(true);
   const [selectedArea, setSelectedArea] = useState("all");
-  const [mapMode, setMapMode] = useState("dark");
+  const { isDark } = useTheme();
+  const [mapMode, setMapMode] = useState(isDark ? "dark" : "light");
   const [selectedRuas, setSelectedRuas] = useState("");
   const [ruasList, setRuasList] = useState([]);
   const [lastUpdate, setLastUpdate] = useState(null);

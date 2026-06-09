@@ -15,6 +15,7 @@ import {
 } from "chart.js";
 import { Pie, Bar, Line } from "react-chartjs-2";
 import { roadDamageService, trackingService } from "../services/api";
+import { useTheme } from "../contexts/ThemeContext";
 import {
   AlertCircle,
   AlertTriangle,
@@ -86,6 +87,7 @@ const StatCard = ({ icon: Icon, label, value, trend, trendUp, color }) => {
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const { isDark } = useTheme();
   const [stats, setStats] = useState(null);
   const [recentTracking, setRecentTracking] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -257,7 +259,7 @@ const AdminDashboard = () => {
       legend: {
         position: "bottom",
         labels: {
-          color: "#eee",
+          color: isDark ? "#eee" : "#374151",
           font: { size: 13, weight: "500" },
           padding: 15,
           usePointStyle: true,
@@ -266,13 +268,13 @@ const AdminDashboard = () => {
     },
     scales: {
       y: {
-        ticks: { color: "#999" },
-        grid: { color: "rgba(255,255,255,0.05)", drawBorder: false },
+        ticks: { color: isDark ? "#999" : "#6b7280" },
+        grid: { color: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.06)", drawBorder: false },
         beginAtZero: true,
       },
       x: {
-        ticks: { color: "#999" },
-        grid: { color: "rgba(255,255,255,0.05)", drawBorder: false },
+        ticks: { color: isDark ? "#999" : "#6b7280" },
+        grid: { color: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.06)", drawBorder: false },
       },
     },
   };
@@ -284,7 +286,7 @@ const AdminDashboard = () => {
       legend: {
         position: "bottom",
         labels: {
-          color: "#eee",
+          color: isDark ? "#eee" : "#374151",
           font: { size: 13, weight: "500" },
           padding: 15,
           usePointStyle: true,

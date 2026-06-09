@@ -2,29 +2,277 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ====================================================
+   THEME VARIABLES
+   ==================================================== */
+:root,
+[data-theme="dark"] {
+  --color-primary: #e94560;
+  --color-secondary: #1a1a2e;
+  --color-accent: #16213e;
+  --color-surface: #1a2035;
+  --color-surface-hover: #1e2a45;
+  --color-border: #374151;
+  --color-border-subtle: rgba(75, 85, 99, 0.4);
+  --color-text: #f3f4f6;
+  --color-text-secondary: #d1d5db;
+  --color-text-muted: #9ca3af;
+  --color-text-dim: #6b7280;
+  --color-input-bg: #1a1a2e;
+  --color-input-border: #4b5563;
+  --color-card-bg: #16213e;
+  --color-nav-bg: linear-gradient(to right, #111827, #1f2937, #1e3a5f);
+  --color-nav-solid: #111827;
+  --color-dropdown-bg: #1f2937;
+  --color-badge-bg: rgba(59, 130, 246, 0.2);
+  --color-badge-text: #93c5fd;
+  --color-badge-border: rgba(59, 130, 246, 0.4);
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4);
+  --shadow-dropdown: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="light"] {
+  --color-primary: #2563eb;
+  --color-secondary: #f0f4f8;
+  --color-accent: #ffffff;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f8fafc;
+  --color-border: #e2e8f0;
+  --color-border-subtle: rgba(203, 213, 225, 0.6);
+  --color-text: #1e293b;
+  --color-text-secondary: #475569;
+  --color-text-muted: #64748b;
+  --color-text-dim: #94a3b8;
+  --color-input-bg: #f8fafc;
+  --color-input-border: #cbd5e1;
+  --color-card-bg: #ffffff;
+  --color-nav-bg: linear-gradient(to right, #ffffff, #f8fafc, #eff6ff);
+  --color-nav-solid: #ffffff;
+  --color-dropdown-bg: #ffffff;
+  --color-badge-bg: rgba(37, 99, 235, 0.1);
+  --color-badge-text: #2563eb;
+  --color-badge-border: rgba(37, 99, 235, 0.25);
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.08);
+  --shadow-dropdown: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+/* Smooth theme transition */
+*, *::before, *::after {
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.15s ease, box-shadow 0.25s ease;
+}
+
 @layer base {
   body {
-    @apply bg-secondary text-gray-100;
+    background-color: var(--color-secondary);
+    color: var(--color-text);
   }
 }
 
 @layer components {
   .btn-primary {
-    @apply bg-primary hover:bg-primary/90 text-white font-semibold py-2 px-4 rounded-lg transition-colors;
+    @apply font-semibold py-2 px-4 rounded-lg transition-colors;
+    background-color: var(--color-primary);
+    color: #ffffff;
   }
+  .btn-primary:hover { opacity: 0.9; }
   
   .btn-secondary {
-    @apply bg-accent hover:bg-accent/80 text-white font-semibold py-2 px-4 rounded-lg transition-colors;
+    @apply font-semibold py-2 px-4 rounded-lg transition-colors;
+    background-color: var(--color-accent);
+    color: var(--color-text);
   }
+  .btn-secondary:hover { opacity: 0.85; }
   
   .card {
-    @apply bg-accent rounded-lg shadow-lg p-6 border border-gray-700;
+    @apply rounded-lg shadow-lg p-6;
+    background-color: var(--color-card-bg);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-card);
   }
   
   .input-field {
-    @apply w-full bg-secondary border border-gray-600 rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-primary transition-colors;
+    @apply w-full rounded-lg px-4 py-2 focus:outline-none transition-colors;
+    background-color: var(--color-input-bg);
+    border: 1px solid var(--color-input-border);
+    color: var(--color-text);
   }
+  .input-field:focus {
+    border-color: var(--color-primary);
+  }
+
+  /* ── Theme-aware utility classes ── */
+  .theme-bg       { background-color: var(--color-secondary); }
+  .theme-surface   { background-color: var(--color-surface); }
+  .theme-card      { background-color: var(--color-card-bg); border: 1px solid var(--color-border); }
+  .theme-text      { color: var(--color-text); }
+  .theme-text-sec  { color: var(--color-text-secondary); }
+  .theme-text-muted{ color: var(--color-text-muted); }
+  .theme-border    { border-color: var(--color-border); }
+  .theme-input     { background-color: var(--color-input-bg); border-color: var(--color-input-border); color: var(--color-text); }
 }
+
+/* ─────────────────────────────────────
+   LIGHT MODE — Override Tailwind grays
+   ───────────────────────────────────── */
+[data-theme="light"] .bg-secondary   { background-color: var(--color-secondary) !important; }
+[data-theme="light"] .bg-accent      { background-color: var(--color-accent) !important; }
+
+/* Gray backgrounds → light equivalents */
+[data-theme="light"] .bg-gray-900   { background-color: #ffffff !important; }
+[data-theme="light"] .bg-gray-800   { background-color: #f8fafc !important; }
+[data-theme="light"] .bg-gray-700   { background-color: #f1f5f9 !important; }
+
+/* Text → dark equivalents */
+[data-theme="light"] .text-white     { color: #1e293b !important; }
+[data-theme="light"] .text-gray-100  { color: #1e293b !important; }
+[data-theme="light"] .text-gray-200  { color: #334155 !important; }
+[data-theme="light"] .text-gray-300  { color: #475569 !important; }
+[data-theme="light"] .text-gray-400  { color: #64748b !important; }
+[data-theme="light"] .text-gray-500  { color: #94a3b8 !important; }
+
+/* Borders */
+[data-theme="light"] .border-gray-700 { border-color: #e2e8f0 !important; }
+[data-theme="light"] .border-gray-600 { border-color: #cbd5e1 !important; }
+
+/* Specific component overrides */
+[data-theme="light"] .bg-\[\#1a2035\] { background-color: #ffffff !important; }
+[data-theme="light"] .bg-\[\#0f1629\] { background-color: #f8fafc !important; }
+[data-theme="light"] .border-gray-700\/60 { border-color: rgba(226, 232, 240, 0.8) !important; }
+
+/* Input fields in light mode */
+[data-theme="light"] .bg-secondary input,
+[data-theme="light"] input.bg-secondary {
+  background-color: var(--color-input-bg) !important;
+  border-color: var(--color-input-border) !important;
+  color: var(--color-text) !important;
+}
+
+/* Navbar in light mode */
+[data-theme="light"] .from-gray-900 { --tw-gradient-from: #ffffff !important; }
+[data-theme="light"] .via-gray-800  { --tw-gradient-via: #f8fafc !important; }
+[data-theme="light"] .to-blue-900   { --tw-gradient-to: #eff6ff !important; }
+
+/* Dropdown / drawer */
+[data-theme="light"] .bg-gray-800\/50 { background-color: rgba(241, 245, 249, 0.7) !important; }
+[data-theme="light"] .bg-gray-700\/60 { background-color: rgba(226, 232, 240, 0.7) !important; }
+[data-theme="light"] .bg-gray-700\/50 { background-color: rgba(226, 232, 240, 0.5) !important; }
+[data-theme="light"] .bg-gray-600\/80 { background-color: rgba(203, 213, 225, 0.8) !important; }
+
+/* Blue accents stay but soften */
+[data-theme="light"] .bg-blue-600\/30 { background-color: rgba(37, 99, 235, 0.1) !important; }
+[data-theme="light"] .bg-blue-600\/20 { background-color: rgba(37, 99, 235, 0.08) !important; }
+[data-theme="light"] .text-blue-300   { color: #2563eb !important; }
+[data-theme="light"] .text-blue-400   { color: #3b82f6 !important; }
+[data-theme="light"] .border-blue-500\/40 { border-color: rgba(37, 99, 235, 0.25) !important; }
+
+/* Red accents */
+[data-theme="light"] .text-red-400   { color: #dc2626 !important; }
+[data-theme="light"] .bg-red-600\/20 { background-color: rgba(220, 38, 38, 0.08) !important; }
+[data-theme="light"] .hover\:text-red-300:hover { color: #ef4444 !important; }
+
+/* Hover overrides */
+[data-theme="light"] .hover\:bg-gray-700\/50:hover { background-color: rgba(226, 232, 240, 0.5) !important; }
+[data-theme="light"] .hover\:bg-gray-800:hover { background-color: #f1f5f9 !important; }
+[data-theme="light"] .hover\:bg-gray-600\/80:hover { background-color: rgba(203, 213, 225, 0.8) !important; }
+[data-theme="light"] .hover\:text-white:hover { color: #1e293b !important; }
+
+/* Drawer overlay */
+[data-theme="light"] .bg-black\/60 { background-color: rgba(0, 0, 0, 0.3) !important; }
+
+/* Shadow for drawer & dropdown */
+[data-theme="light"] .shadow-xl { box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12) !important; }
+[data-theme="light"] .shadow-2xl { box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15) !important; }
+
+/* Active nav item in light mode */
+[data-theme="light"] .bg-blue-600 {
+  background-color: #2563eb !important;
+}
+[data-theme="light"] .bg-blue-600 .text-white,
+[data-theme="light"] .bg-blue-600 span {
+  color: #ffffff !important;
+}
+
+/* Gradient text-to backgrounds */
+[data-theme="light"] .to-blue-900\/60 { --tw-gradient-to: rgba(219, 234, 254, 0.6) !important; }
+
+/* Navbar light mode border shadow */
+[data-theme="light"] nav.border-b { 
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06) !important;
+}
+
+/* Select / textarea in light mode */
+[data-theme="light"] select,
+[data-theme="light"] textarea {
+  background-color: var(--color-input-bg) !important;
+  border-color: var(--color-input-border) !important;
+  color: var(--color-text) !important;
+}
+
+/* Green success badges */
+[data-theme="light"] .text-green-400 { color: #16a34a !important; }
+[data-theme="light"] .text-green-500 { color: #22c55e !important; }
+[data-theme="light"] .bg-green-600\/20 { background-color: rgba(22, 163, 74, 0.08) !important; }
+
+/* Yellow/amber warnings */
+[data-theme="light"] .text-yellow-400 { color: #d97706 !important; }
+[data-theme="light"] .text-amber-400  { color: #d97706 !important; }
+[data-theme="light"] .text-orange-400 { color: #ea580c !important; }
+
+/* Scrollbar for light mode */
+[data-theme="light"] ::-webkit-scrollbar-track { background: #f1f5f9; }
+[data-theme="light"] ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Divider lines */
+[data-theme="light"] .h-px.bg-gray-700 { background-color: #e2e8f0 !important; }
+[data-theme="light"] .divide-gray-700 > * + * { border-color: #e2e8f0 !important; }
+
+/* Table rows */
+[data-theme="light"] tr:hover td { background-color: rgba(241, 245, 249, 0.5) !important; }
+
+/* Modal overlay */
+[data-theme="light"] .modal-overlay { background-color: rgba(0,0,0,0.3) !important; }
+
+/* Stat cards, info panels */
+[data-theme="light"] .bg-primary\/20 { background-color: rgba(37, 99, 235, 0.08) !important; }
+[data-theme="light"] .bg-primary\/10 { background-color: rgba(37, 99, 235, 0.05) !important; }
+[data-theme="light"] .text-primary { color: #2563eb !important; }
+
+/* Gradient cards — from-gray-800 to-gray-900 */
+[data-theme="light"] .from-gray-800 { --tw-gradient-from: #ffffff !important; }
+[data-theme="light"] .to-gray-900 { --tw-gradient-to: #f8fafc !important; }
+
+/* Gradient status cards */
+[data-theme="light"] .from-red-900\/30 { --tw-gradient-from: rgba(254, 226, 226, 0.5) !important; }
+[data-theme="light"] .to-red-800\/20 { --tw-gradient-to: rgba(254, 202, 202, 0.3) !important; }
+[data-theme="light"] .from-yellow-900\/30 { --tw-gradient-from: rgba(254, 249, 195, 0.5) !important; }
+[data-theme="light"] .to-yellow-800\/20 { --tw-gradient-to: rgba(254, 240, 138, 0.3) !important; }
+[data-theme="light"] .from-green-900\/30 { --tw-gradient-from: rgba(220, 252, 231, 0.5) !important; }
+[data-theme="light"] .to-green-800\/20 { --tw-gradient-to: rgba(187, 247, 208, 0.3) !important; }
+
+/* Status card borders */
+[data-theme="light"] .border-red-700\/30 { border-color: rgba(252, 165, 165, 0.4) !important; }
+[data-theme="light"] .border-yellow-700\/30 { border-color: rgba(253, 224, 71, 0.4) !important; }
+[data-theme="light"] .border-green-700\/30 { border-color: rgba(134, 239, 172, 0.4) !important; }
+
+/* Gray transparency variants */
+[data-theme="light"] .bg-gray-700\/20 { background-color: rgba(241, 245, 249, 0.6) !important; }
+[data-theme="light"] .border-gray-700\/50 { border-color: rgba(226, 232, 240, 0.7) !important; }
+[data-theme="light"] .bg-gray-600\/50 { background-color: rgba(203, 213, 225, 0.5) !important; }
+
+/* Colored status badges */
+[data-theme="light"] .text-red-300 { color: #ef4444 !important; }
+[data-theme="light"] .text-yellow-300 { color: #eab308 !important; }
+[data-theme="light"] .text-green-300 { color: #22c55e !important; }
+
+/* Hover borders */
+[data-theme="light"] .hover\:border-gray-600:hover { border-color: #cbd5e1 !important; }
+
+/* Button variants */
+[data-theme="light"] .bg-blue-600\/20 { background-color: rgba(37, 99, 235, 0.1) !important; }
+[data-theme="light"] .hover\:bg-blue-600\/30:hover { background-color: rgba(37, 99, 235, 0.15) !important; }
+[data-theme="light"] .border-blue-600\/30 { border-color: rgba(37, 99, 235, 0.2) !important; }
 
 /* ====================================================
    LEAFLET MAP - BASE STYLES

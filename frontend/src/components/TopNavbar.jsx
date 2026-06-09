@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useLocation, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { useTheme } from "../contexts/ThemeContext";
 import {
   LogOut,
   User,
@@ -17,6 +18,8 @@ import {
   Route as RouteIcon,
   Play,
   MapPin,
+  Sun,
+  Moon,
 } from "lucide-react";
 import ProfileModal from "./ProfileModal";
 import SettingsModal from "./SettingsModal";
@@ -25,6 +28,7 @@ import HelpModal from "./HelpModal";
 const TopNavbar = () => {
   const location = useLocation();
   const { user, logout, isAdmin } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [openModal, setOpenModal] = useState(null);
@@ -158,7 +162,21 @@ const TopNavbar = () => {
             </div>
           </div>
 
-          {/* KANAN: User Profile Dropdown */}
+          {/* KANAN: Theme Toggle + User Profile Dropdown */}
+          <div className="flex items-center gap-2">
+            {/* Theme toggle */}
+            <button
+              onClick={toggleTheme}
+              className="flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200"
+              style={{
+                background: isDark ? 'rgba(251,191,36,0.1)' : 'rgba(99,102,241,0.1)',
+                color: isDark ? '#fbbf24' : '#6366f1',
+                border: `1px solid ${isDark ? 'rgba(251,191,36,0.2)' : 'rgba(99,102,241,0.2)'}`,
+              }}
+              title={isDark ? 'Switch ke Light Mode' : 'Switch ke Dark Mode'}
+            >
+              {isDark ? <Sun className="w-[18px] h-[18px]" /> : <Moon className="w-[18px] h-[18px]" />}
+            </button>
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setIsOpen(!isOpen)}
@@ -216,6 +234,7 @@ const TopNavbar = () => {
                 </button>
               </div>
             )}
+          </div>
           </div>
         </div>
       </nav>
@@ -307,6 +326,18 @@ const TopNavbar = () => {
           <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider px-3 mb-2">
             Akun
           </p>
+          {/* Theme toggle in drawer */}
+          <button
+            onClick={toggleTheme}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-gray-800 hover:text-white transition-all"
+          >
+            {isDark ? (
+              <Sun className="w-5 h-5 flex-shrink-0 text-amber-400" />
+            ) : (
+              <Moon className="w-5 h-5 flex-shrink-0 text-indigo-500" />
+            )}
+            <span className="font-medium text-sm">{isDark ? 'Mode Terang' : 'Mode Gelap'}</span>
+          </button>
           {menuItems.map((item, index) => {
             const Icon = item.icon;
             return (
