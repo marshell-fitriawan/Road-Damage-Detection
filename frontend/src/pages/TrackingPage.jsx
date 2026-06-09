@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -21,6 +22,11 @@ import {
   Clock,
   Ruler,
   AlertTriangle,
+  Maximize2,
+  Minimize2,
+  RotateCw,
+  Wifi,
+  X,
 } from "lucide-react";
 import MapPickerModal from "../components/MapPickerModal";
 
@@ -72,6 +78,43 @@ const FlyToLocation = ({ location, hasFlewOnce }) => {
       hasFlewOnce.current = true;
     }
   }, [location.lat, location.lng]);
+  return null;
+};
+
+// Batas wilayah Kubu Raya — garis kuning putus-putus
+const KubuRayaBoundaryLayer = () => {
+  const map = useMap();
+  const layerRef = useRef(null);
+
+  useEffect(() => {
+    fetch('/kuburaya-boundary.json')
+      .then(res => res.json())
+      .then(data => {
+        if (layerRef.current && map.hasLayer(layerRef.current)) {
+          map.removeLayer(layerRef.current);
+        }
+        const layer = L.geoJSON(data, {
+          style: () => ({
+            color: '#facc15',
+            weight: 2.5,
+            opacity: 0.85,
+            fillColor: '#facc15',
+            fillOpacity: 0.04,
+            dashArray: '10, 6',
+          }),
+        });
+        layer.addTo(map);
+        layerRef.current = layer;
+      })
+      .catch(() => {});
+
+    return () => {
+      if (layerRef.current && map.hasLayer(layerRef.current)) {
+        map.removeLayer(layerRef.current);
+      }
+    };
+  }, [map]);
+
   return null;
 };
 
@@ -166,7 +209,229 @@ const DamageRow = ({ damage, index }) => {
   );
 };
 
+/* ─────────────── Fullscreen Camera Overlay ─────────────── */
+const CameraLandscapeOverlay = ({
+  streamRef,
+  isCameraReady,
+  detectionResults,
+  fps,
+  gpsReady,
+  gpsAccuracy,
+  savedDamages,
+  onClose,
+}) => {
+  const ownVideoRef = useRef(null);
+  const overlayCanvasRef = useRef(null);
+  const rafRef = useRef(null);
+
+  // Fullscreen + lock scroll
+  useEffect(() => {
+    // Coba minta fullscreen (sembunyikan browser chrome)
+    const el = document.documentElement;
+    try {
+      if (el.requestFullscreen) el.requestFullscreen();
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    } catch (e) {}
+
+    document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.width = "100%";
+
+    return () => {
+      try {
+        if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen();
+        else if (document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen();
+      } catch (e) {}
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    };
+  }, []);
+
+  // Attach stream ke video element sendiri
+  useEffect(() => {
+    const video = ownVideoRef.current;
+    if (!video || !streamRef.current) return;
+    video.srcObject = streamRef.current;
+    video.play().catch(() => {});
+    return () => { if (video) video.srcObject = null; };
+  }, [streamRef]);
+
+  // Draw bounding boxes — letterbox-aware
+  useEffect(() => {
+    const draw = () => {
+      const video = ownVideoRef.current;
+      const canvas = overlayCanvasRef.current;
+      if (!canvas || !video || !video.videoWidth) {
+        rafRef.current = requestAnimationFrame(draw);
+        return;
+      }
+      const cw = canvas.clientWidth || video.clientWidth || video.videoWidth;
+      const ch = canvas.clientHeight || video.clientHeight || video.videoHeight;
+      if (canvas.width !== cw || canvas.height !== ch) {
+        canvas.width = cw;
+        canvas.height = ch;
+      }
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, cw, ch);
+
+      if (detectionResults?.length > 0) {
+        // objectFit: cover — video diisi penuh, di-crop bagian tepi
+        const videoAR = video.videoWidth / video.videoHeight;
+        const containerAR = cw / ch;
+        let rendW, rendH, offX = 0, offY = 0;
+        if (videoAR > containerAR) {
+          // Video lebih lebar → fit height, crop kiri-kanan
+          rendH = ch; rendW = ch * videoAR;
+          offX = (cw - rendW) / 2; // negatif = geser ke kiri (cropped)
+        } else {
+          // Video lebih tinggi → fit width, crop atas-bawah
+          rendW = cw; rendH = cw / videoAR;
+          offY = (ch - rendH) / 2; // negatif = geser ke atas (cropped)
+        }
+        const sendH = SEND_WIDTH * (video.videoHeight / video.videoWidth);
+        const sx = rendW / SEND_WIDTH;
+        const sy = rendH / sendH;
+
+        detectionResults.forEach((det) => {
+          const { bbox, class_name, confidence } = det;
+          if (!bbox) return;
+          const x = offX + bbox.x1 * sx;
+          const y = offY + bbox.y1 * sy;
+          const w = (bbox.x2 - bbox.x1) * sx;
+          const h = (bbox.y2 - bbox.y1) * sy;
+          const color = getColorForClass(class_name);
+
+          ctx.shadowColor = color; ctx.shadowBlur = 14;
+          ctx.strokeStyle = color; ctx.lineWidth = 3;
+          ctx.strokeRect(x, y, w, h); ctx.shadowBlur = 0;
+
+          const cs = Math.min(w, h, 22);
+          ctx.lineWidth = 5;
+          [[x, y], [x + w, y], [x, y + h], [x + w, y + h]].forEach(([cx, cy]) => {
+            const dx = cx === x ? 1 : -1; const dy = cy === y ? 1 : -1;
+            ctx.beginPath(); ctx.moveTo(cx + dx * cs, cy);
+            ctx.lineTo(cx, cy); ctx.lineTo(cx, cy + dy * cs); ctx.stroke();
+          });
+
+          const label = `${class_name}  ${(confidence * 100).toFixed(0)}%`;
+          ctx.font = "bold 14px Arial";
+          const tw = ctx.measureText(label).width;
+          const lx = x; const ly = y > 30 ? y - 28 : y + h + 4;
+          ctx.fillStyle = color + "cc";
+          ctx.beginPath(); ctx.roundRect(lx, ly, tw + 14, 24, 5); ctx.fill();
+          ctx.fillStyle = "#fff"; ctx.fillText(label, lx + 7, ly + 17);
+        });
+      }
+      rafRef.current = requestAnimationFrame(draw);
+    };
+    rafRef.current = requestAnimationFrame(draw);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [detectionResults]);
+
+  // Render via Portal langsung ke document.body
+  // → bypass ancestor transforms/overflow yang bisa bocorkan halaman lama
+  return createPortal(
+    <div style={{
+      position: "fixed",
+      top: 0, left: 0, right: 0, bottom: 0,
+      zIndex: 2147483647,           // z-index maksimum
+      background: "#000",
+      display: "flex",
+      flexDirection: "column",
+      // Extend ke luar safe area agar benar-benar menutup semua
+      paddingTop: "env(safe-area-inset-top, 0px)",
+      paddingBottom: "env(safe-area-inset-bottom, 0px)",
+    }}>
+      {/* Video fullscreen */}
+      <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+        <video
+          ref={ownVideoRef}
+          autoPlay playsInline muted
+          style={{
+            position: "absolute", inset: 0,
+            width: "100%", height: "100%",
+            objectFit: "cover",
+            background: "#000",
+          }}
+        />
+        <canvas
+          ref={overlayCanvasRef}
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}
+        />
+
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          style={{
+            position: "absolute",
+            top: "max(12px, env(safe-area-inset-top, 12px))",
+            right: 12,
+            background: "rgba(0,0,0,0.75)", border: "1px solid rgba(255,255,255,0.25)",
+            borderRadius: "50%", width: 44, height: 44,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer", zIndex: 10,
+          }}
+        >
+          <X style={{ width: 20, height: 20, color: "#fff" }} />
+        </button>
+
+        {/* GPS + FPS badges */}
+        <div style={{
+          position: "absolute",
+          top: "max(12px, env(safe-area-inset-top, 12px))",
+          left: 12, display: "flex", gap: 6, zIndex: 10,
+        }}>
+          <div style={{
+            background: "rgba(0,0,0,0.72)", borderRadius: 14, padding: "5px 11px",
+            border: `1px solid ${gpsReady ? "rgba(34,197,94,0.5)" : "rgba(234,179,8,0.5)"}`,
+            display: "flex", alignItems: "center", gap: 5,
+          }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: gpsReady ? "#22c55e" : "#eab308", flexShrink: 0 }} />
+            <span style={{ color: gpsReady ? "#22c55e" : "#eab308", fontSize: 12, fontWeight: 600 }}>
+              {gpsReady ? `GPS ±${gpsAccuracy ?? "?"}m` : "GPS..."}
+            </span>
+          </div>
+          <div style={{ background: "rgba(0,0,0,0.65)", borderRadius: 14, padding: "5px 11px", border: "1px solid rgba(255,255,255,0.12)" }}>
+            <span style={{ color: fps > 2 ? "#22c55e" : "#eab308", fontSize: 12, fontWeight: 600 }}>{fps} FPS</span>
+          </div>
+          {savedDamages.length > 0 && (
+            <div style={{ background: "rgba(239,68,68,0.18)", borderRadius: 14, padding: "5px 11px", border: "1px solid rgba(239,68,68,0.4)" }}>
+              <span style={{ color: "#ef4444", fontSize: 12, fontWeight: 600 }}>💾 {savedDamages.length}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Detection chips at bottom */}
+        {detectionResults.length > 0 && (
+          <div style={{
+            position: "absolute",
+            bottom: "max(16px, env(safe-area-inset-bottom, 16px))",
+            left: 12, right: 12,
+            display: "flex", flexWrap: "wrap", gap: 5, justifyContent: "center", zIndex: 10,
+          }}>
+            {detectionResults.map((d, i) => {
+              const color = getColorForClass(d.class_name);
+              return (
+                <span key={i} style={{
+                  background: color + "22", color, border: `1px solid ${color}66`,
+                  borderRadius: 20, padding: "4px 12px", fontSize: 12, fontWeight: 700,
+                }}>
+                  {d.class_name} · {(d.confidence * 100).toFixed(0)}%
+                  {d.area_cm2 ? ` · ${d.area_cm2.toFixed(0)}cm²` : ""}
+                </span>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>,
+    document.body  // ← render langsung ke body, bukan di dalam React tree
+  );
+};
+
 /* ─────────────── Main Page ─────────────── */
+
 
 const TrackingPage = () => {
   const videoRef = useRef(null);
@@ -178,9 +443,23 @@ const TrackingPage = () => {
   const detectingRef = useRef(false);
   const lastDetectionsRef = useRef([]);
   const overlayIntervalRef = useRef(null);
-  const locationRef = useRef({ lat: null, lng: null });
-  const hasFlewOnce = useRef(false);
+  const locationRef   = useRef({ lat: null, lng: null });
+  const hasFlewOnce   = useRef(false);
   const bgGpsWatchRef = useRef(null);
+  // Buffer 8 posisi GPS terakhir untuk averaging — makin banyak sampel = makin stabil
+  const gpsBufferRef  = useRef([]);  // [{lat, lng, accuracy, ts}]
+
+  // Hitung posisi rata-rata GPS berbobot (accuracy lebih kecil = bobot lebih besar)
+  const getAveragedLocation = () => {
+    const buf = gpsBufferRef.current;
+    if (buf.length === 0) return locationRef.current;
+    if (buf.length === 1) return { lat: buf[0].lat, lng: buf[0].lng };
+    // Bobot = 1 / accuracy (lebih akurat = bobot besar)
+    const totalW = buf.reduce((s, p) => s + 1 / p.accuracy, 0);
+    const avgLat = buf.reduce((s, p) => s + p.lat * (1 / p.accuracy), 0) / totalW;
+    const avgLng = buf.reduce((s, p) => s + p.lng * (1 / p.accuracy), 0) / totalW;
+    return { lat: avgLat, lng: avgLng };
+  };
 
   const [session, setSession] = useState(null);
   const [isTracking, setIsTracking] = useState(false);
@@ -203,6 +482,8 @@ const TrackingPage = () => {
   const [pendingRoute, setPendingRoute] = useState(null);
   const [routeInfo, setRouteInfo] = useState(null);
   const [sessionStart, setSessionStart] = useState(null);
+  const [isLandscapeOpen, setIsLandscapeOpen] = useState(false);
+  const [showRotateHint, setShowRotateHint] = useState(false);
 
   useEffect(() => {
     checkActiveSession();
@@ -409,24 +690,36 @@ const TrackingPage = () => {
 
     const handlePosition = async (pos) => {
       const { latitude, longitude, accuracy } = pos.coords;
-      if (accuracy > 50) return;
+      // Filter posisi yang terlalu tidak akurat (>80m)
+      if (accuracy > 80) return;
+
+      // Tambah ke buffer GPS (simpan maks 8 posisi terbaru)
+      const buf = gpsBufferRef.current;
+      buf.push({ lat: latitude, lng: longitude, accuracy, ts: Date.now() });
+      // Hanya simpan 8 posisi terakhir
+      if (buf.length > 8) buf.shift();
+      // Hapus posisi yang lebih dari 30 detik
+      const now = Date.now();
+      gpsBufferRef.current = buf.filter(p => now - p.ts < 30000);
+
       const prev = locationRef.current;
       if (prev.lat && prev.lng) {
         const distance = getDistanceMeters(
-          prev.lat,
-          prev.lng,
-          latitude,
-          longitude,
+          prev.lat, prev.lng, latitude, longitude,
         );
         if (distance < GPS_MIN_DISTANCE_M) {
           setLocation({ lat: latitude, lng: longitude });
           locationRef.current = { lat: latitude, lng: longitude };
+          setGpsAccuracy(Math.round(accuracy));
+          setGpsReady(true);
           return;
         }
       }
       const loc = { lat: latitude, lng: longitude };
       setLocation(loc);
       locationRef.current = loc;
+      setGpsAccuracy(Math.round(accuracy));
+      setGpsReady(accuracy <= 50);
       try {
         await trackingService.updateRoute(sessionId, latitude, longitude);
       } catch (e) {
@@ -557,21 +850,29 @@ const TrackingPage = () => {
   const saveBestDetection = async (sessionId, canvas, detection) => {
     try {
       const imageBase64 = canvas.toDataURL("image/jpeg", 0.9);
-      const currentLoc = locationRef.current;
+      // Gunakan koordinat rata-rata berbobot dari buffer GPS (lebih akurat dari snapshot tunggal)
+      const currentLoc = getAveragedLocation();
+      if (!currentLoc.lat || !currentLoc.lng) {
+        console.warn("GPS belum siap, skip save");
+        return;
+      }
+      // Presisi 8 desimal (~1mm) — lebih akurat dari 7
+      const lat = parseFloat(currentLoc.lat.toFixed(8));
+      const lng = parseFloat(currentLoc.lng.toFixed(8));
       await trackingService.saveDamage(sessionId, {
         image: imageBase64,
         damage_type: detection.class_name,
         confidence: detection.confidence,
-        latitude: currentLoc.lat,
-        longitude: currentLoc.lng,
+        latitude:  lat,
+        longitude: lng,
       });
       setSavedDamages((prev) => [
         ...prev,
         {
           damage_type: detection.class_name,
           confidence: detection.confidence,
-          latitude: currentLoc.lat,
-          longitude: currentLoc.lng,
+          latitude:  lat,
+          longitude: lng,
           created_at: new Date().toISOString(),
         },
       ]);
@@ -775,7 +1076,21 @@ const TrackingPage = () => {
               icon={Camera}
               iconColor="text-blue-400"
               title="Kamera Live"
-              right={<GpsBadge gpsReady={gpsReady} gpsAccuracy={gpsAccuracy} />}
+              right={
+                <div className="flex items-center gap-2">
+                  {isCameraReady && (
+                    <button
+                      onClick={() => setShowRotateHint(true)}
+                      title="Buka mode fullscreen"
+                      className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/30 text-blue-400 transition-all"
+                    >
+                      <Maximize2 className="w-3.5 h-3.5" />
+                      <span>Fullscreen</span>
+                    </button>
+                  )}
+                  <GpsBadge gpsReady={gpsReady} gpsAccuracy={gpsAccuracy} />
+                </div>
+              }
             />
             <div className="relative bg-black" style={{ minHeight: "240px" }}>
               <video
@@ -884,6 +1199,8 @@ const TrackingPage = () => {
                   maxZoom={19}
                 />
                 <FlyToLocation location={location} hasFlewOnce={hasFlewOnce} />
+                {/* Batas wilayah Kubu Raya */}
+                <KubuRayaBoundaryLayer />
                 {location.lat && (
                   <Marker
                     position={[location.lat, location.lng]}
@@ -1110,6 +1427,98 @@ const TrackingPage = () => {
         onConfirm={handleRouteConfirmed}
         currentLocation={location.lat ? location : null}
       />
+
+      {/* ── Modal: Aktifkan Rotasi Otomatis ── */}
+      {showRotateHint && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 99998,
+          background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          padding: "20px",
+        }}>
+          <div style={{
+            background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",
+            border: "1px solid rgba(59,130,246,0.3)",
+            borderRadius: 20, padding: "28px 24px",
+            maxWidth: 340, width: "100%",
+            boxShadow: "0 25px 60px rgba(0,0,0,0.6)",
+          }}>
+            {/* Icon */}
+            <div style={{ textAlign: "center", marginBottom: 18 }}>
+              <div style={{
+                width: 64, height: 64, borderRadius: "50%",
+                background: "rgba(59,130,246,0.15)", border: "2px solid rgba(59,130,246,0.4)",
+                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                fontSize: 30,
+              }}>📱</div>
+            </div>
+
+            {/* Title */}
+            <h3 style={{ color: "#f1f5f9", fontSize: 17, fontWeight: 700, textAlign: "center", margin: "0 0 10px" }}>
+              Aktifkan Rotasi Otomatis
+            </h3>
+
+            {/* Body */}
+            <p style={{ color: "#94a3b8", fontSize: 13, lineHeight: 1.6, textAlign: "center", margin: "0 0 8px" }}>
+              Sebelum masuk mode fullscreen, pastikan fitur
+            </p>
+            <div style={{
+              background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.25)",
+              borderRadius: 10, padding: "10px 14px", marginBottom: 20, textAlign: "center",
+            }}>
+              <span style={{ color: "#60a5fa", fontWeight: 700, fontSize: 13 }}>
+                🔄 Rotasi Otomatis (Auto-Rotate)
+              </span>
+              <p style={{ color: "#94a3b8", fontSize: 12, margin: "4px 0 0" }}>
+                sudah diaktifkan di pengaturan HP Anda
+              </p>
+            </div>
+
+            <p style={{ color: "#64748b", fontSize: 12, textAlign: "center", margin: "0 0 20px" }}>
+              Putar HP ke kiri/kanan untuk melihat kamera secara landscape setelah masuk fullscreen.
+            </p>
+
+            {/* Buttons */}
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={() => setShowRotateHint(false)}
+                style={{
+                  flex: 1, padding: "12px", borderRadius: 12,
+                  background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
+                  color: "#94a3b8", fontSize: 14, fontWeight: 600, cursor: "pointer",
+                }}
+              >
+                Batal
+              </button>
+              <button
+                onClick={() => { setShowRotateHint(false); setIsLandscapeOpen(true); }}
+                style={{
+                  flex: 1, padding: "12px", borderRadius: 12,
+                  background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+                  border: "none", color: "#fff", fontSize: 14, fontWeight: 700,
+                  cursor: "pointer", boxShadow: "0 4px 15px rgba(59,130,246,0.4)",
+                }}
+              >
+                Sudah, Lanjutkan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fullscreen Camera Overlay */}
+      {isLandscapeOpen && (
+        <CameraLandscapeOverlay
+          streamRef={streamRef}
+          isCameraReady={isCameraReady}
+          detectionResults={detectionResults}
+          fps={fps}
+          gpsReady={gpsReady}
+          gpsAccuracy={gpsAccuracy}
+          savedDamages={savedDamages}
+          onClose={() => setIsLandscapeOpen(false)}
+        />
+      )}
     </div>
   );
 };

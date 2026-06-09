@@ -1,7 +1,24 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
-import { MapContainer, TileLayer, CircleMarker, Popup, Polyline, Marker, GeoJSON, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, CircleMarker, Popup, Polyline, Marker, Tooltip, GeoJSON, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+
+/* ── Custom tooltip untuk nama petugas di garis rute ── */
+const ROUTE_TOOLTIP_STYLE = `
+  .route-name-tooltip {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+  .route-name-tooltip::before { display: none !important; }
+`;
+if (typeof document !== 'undefined' && !document.getElementById('route-tooltip-style')) {
+  const s = document.createElement('style');
+  s.id = 'route-tooltip-style';
+  s.textContent = ROUTE_TOOLTIP_STYLE;
+  document.head.appendChild(s);
+}
 
 // ============ DATA KECAMATAN KABUPATEN KUBU RAYA ============
 export const KECAMATAN_KUBU_RAYA = [
@@ -590,40 +607,50 @@ const RoadDamageMap = ({
   const theme = THEMES[mapMode] || THEMES.dark;
   const tile = TILE_LAYERS[mapMode] || TILE_LAYERS.dark;
 
-  // Cache icon petugas per warna — icon stabil = event handler tidak rusak saat re-render
-  const petugasIcons = useMemo(() => {
-    return petugasColors.map(color => createPetugasIcon(color));
-  }, []);
+  // State: ID rute yang sedang dipilih admin (null = tidak ada)
+  const [selectedRouteId, setSelectedRouteId] = useState(null);
 
-  // Icon A (mulai) dan B (akhir) berwarna unik per rute — dibedakan agar admin tidak bingung
-  const routeIcons = useMemo(() => {
-    return petugasColors.map(color => ({
+  // Buat ikon per warna dalam dua ukuran: normal dan highlighted
+  const makeRouteIcons = (color, highlighted = false) => {
+    const size   = highlighted ? 36 : 28;
+    const shadow = highlighted
+      ? `0 0 0 4px ${color}55, 0 0 18px 6px ${color}88, 0 4px 14px rgba(0,0,0,0.6)`
+      : '0 2px 10px rgba(0,0,0,0.6)';
+    const anchor = size / 2;
+    return {
       start: L.divIcon({
         className: '',
         html: `<div style="
-          width:28px;height:28px;background:${color};
-          border:3px solid white;border-radius:50%;
-          box-shadow:0 2px 10px rgba(0,0,0,0.6);
+          width:${size}px;height:${size}px;background:${color};
+          border:${highlighted ? 4 : 3}px solid white;border-radius:50%;
+          box-shadow:${shadow};
           display:flex;align-items:center;justify-content:center;
-          font-size:12px;font-weight:bold;color:white;
+          font-size:${highlighted ? 14 : 12}px;font-weight:bold;color:white;
+          transition:all 0.2s;
         ">A</div>`,
-        iconSize: [28, 28],
-        iconAnchor: [14, 14],
+        iconSize: [size, size],
+        iconAnchor: [anchor, anchor],
       }),
       end: L.divIcon({
         className: '',
         html: `<div style="
-          width:28px;height:28px;background:${color};
-          border:3px solid white;border-radius:50%;
-          box-shadow:0 2px 10px rgba(0,0,0,0.6);
+          width:${size}px;height:${size}px;background:${color};
+          border:${highlighted ? 4 : 3}px solid white;border-radius:50%;
+          box-shadow:${shadow};
           display:flex;align-items:center;justify-content:center;
-          font-size:12px;font-weight:bold;color:white;
-          outline:3px dashed ${color};outline-offset:3px;
+          font-size:${highlighted ? 14 : 12}px;font-weight:bold;color:white;
+          outline:${highlighted ? 3 : 2}px dashed ${color};outline-offset:${highlighted ? 4 : 3}px;
+          transition:all 0.2s;
         ">B</div>`,
-        iconSize: [28, 28],
-        iconAnchor: [14, 14],
+        iconSize: [size, size],
+        iconAnchor: [anchor, anchor],
       }),
-    }));
+    };
+  };
+
+  // Cache icon petugas per warna
+  const petugasIcons = useMemo(() => {
+    return petugasColors.map(color => createPetugasIcon(color));
   }, []);
 
   // Filter kerusakan sesuai filter aktif (type, severity, status)
@@ -636,6 +663,8 @@ const RoadDamageMap = ({
       return true;
     });
   };
+
+  const hasSelection = selectedRouteId !== null;
 
   return (
     <MapContainer
@@ -677,38 +706,102 @@ const RoadDamageMap = ({
 
       {/* ====== RUTE TRACKING YANG SUDAH SELESAI ====== */}
       {routePaths.map((route, index) => {
-        const rIcons = routeIcons[index % routeIcons.length];
+        const routeId = route.id || index;
+        const isSelected = selectedRouteId === routeId;
+        const isDimmed  = hasSelection && !isSelected;
+        const color     = route.color || petugasColors[index % petugasColors.length];
+        const rIcons    = makeRouteIcons(color, isSelected);
+
+        // Opacity garis: dipilih=terang, tidak dipilih=redup
+        const lineOpacity    = isDimmed ? 0.12 : isSelected ? 0.95 : 0.55;
+        const lineWeight     = isSelected ? 6   : 3;
+        const glowOpacity    = isSelected ? 0.35 : 0;
+        const markerOpacity  = isDimmed ? 0.25 : 1;
+
         return (
-        <React.Fragment key={`route-done-${route.id || index}`}>
-          {/* Garis rute aktual GPS - hanya render jika ada lebih dari 1 titik */}
-          {route.path && route.path.length > 1 && (
+        <React.Fragment key={`route-done-${routeId}`}>
+          {/* Lapisan GLOW bloom (hanya saat terpilih) */}
+          {route.path && route.path.length > 1 && isSelected && (
             <Polyline
               positions={route.path.map(p => [p.lat, p.lng])}
-              color={route.color || '#6b7280'}
-              weight={3}
-              opacity={0.5}
-              dashArray="8, 6"
+              color={color}
+              weight={18}
+              opacity={0.18}
+              interactive={false}
+            />
+          )}
+          {route.path && route.path.length > 1 && isSelected && (
+            <Polyline
+              positions={route.path.map(p => [p.lat, p.lng])}
+              color={color}
+              weight={10}
+              opacity={0.28}
               interactive={false}
             />
           )}
 
-          {/* Garis target A→B mengikuti jalan (OSRM) - warna sesuai rute */}
+          {/* Garis rute GPS utama — klik untuk pilih/deselect */}
+          {route.path && route.path.length > 1 && (
+            <Polyline
+              positions={route.path.map(p => [p.lat, p.lng])}
+              color={color}
+              weight={lineWeight}
+              opacity={lineOpacity}
+              dashArray={isSelected ? undefined : '8, 6'}
+              eventHandlers={{
+                click: () => setSelectedRouteId(isSelected ? null : routeId),
+              }}
+            >
+              {/* Tooltip nama petugas di tengah garis saat dipilih */}
+              {isSelected && route.userName && (
+                <Tooltip
+                  permanent
+                  sticky={false}
+                  direction="center"
+                  offset={[0, -10]}
+                  opacity={1}
+                  className="route-name-tooltip"
+                >
+                  <span style={{
+                    background: color + 'ee',
+                    color: '#fff',
+                    fontWeight: 700,
+                    fontSize: 11,
+                    padding: '2px 8px',
+                    borderRadius: 10,
+                    letterSpacing: 0.3,
+                    textShadow: '0 1px 3px rgba(0,0,0,0.6)',
+                    whiteSpace: 'nowrap',
+                  }}>
+                    {route.userName}
+                  </span>
+                </Tooltip>
+              )}
+            </Polyline>
+          )}
+
+          {/* Garis target A→B mengikuti jalan (OSRM) */}
           {route.start_point && route.end_point && (
             <RouteTargetLine
               startPoint={route.start_point}
               endPoint={route.end_point}
-              color={route.color || '#facc15'}
+              color={color}
             />
           )}
 
-          {/* Marker titik mulai (A) — warna unik per petugas */}
+          {/* Marker titik mulai (A) */}
           {route.start_point && (
-            <Marker position={[route.start_point.lat, route.start_point.lng]} icon={rIcons.start}>
+            <Marker
+              position={[route.start_point.lat, route.start_point.lng]}
+              icon={rIcons.start}
+              opacity={markerOpacity}
+              eventHandlers={{ click: () => setSelectedRouteId(isSelected ? null : routeId) }}
+            >
               <Popup>
                 <div style={{ color: theme.popupText, minWidth: '160px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
-                    <span style={{ background: route.color, color: 'white', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 'bold', flexShrink: 0 }}>A</span>
-                    <span style={{ fontWeight: 'bold', color: route.color, fontSize: '13px' }}>Titik Mulai</span>
+                    <span style={{ background: color, color: 'white', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 'bold', flexShrink: 0 }}>A</span>
+                    <span style={{ fontWeight: 'bold', color: color, fontSize: '13px' }}>Titik Mulai</span>
                   </div>
                   {route.userName && <p style={{ fontSize: '13px', fontWeight: '700', margin: '2px 0', color: theme.popupText }}>{route.userName}</p>}
                   {route.ruas_jalan_name && <p style={{ fontSize: '11px', color: theme.popupMuted, margin: '2px 0' }}>{route.ruas_jalan_name}</p>}
@@ -717,14 +810,19 @@ const RoadDamageMap = ({
             </Marker>
           )}
 
-          {/* Marker titik akhir (B) — warna unik per petugas */}
+          {/* Marker titik akhir (B) */}
           {route.end_point && (
-            <Marker position={[route.end_point.lat, route.end_point.lng]} icon={rIcons.end}>
+            <Marker
+              position={[route.end_point.lat, route.end_point.lng]}
+              icon={rIcons.end}
+              opacity={markerOpacity}
+              eventHandlers={{ click: () => setSelectedRouteId(isSelected ? null : routeId) }}
+            >
               <Popup>
                 <div style={{ color: theme.popupText, minWidth: '160px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
-                    <span style={{ background: route.color, color: 'white', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 'bold', flexShrink: 0, outline: `2px dashed ${route.color}`, outlineOffset: '2px' }}>B</span>
-                    <span style={{ fontWeight: 'bold', color: route.color, fontSize: '13px' }}>Titik Akhir</span>
+                    <span style={{ background: color, color: 'white', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 'bold', flexShrink: 0, outline: `2px dashed ${color}`, outlineOffset: '2px' }}>B</span>
+                    <span style={{ fontWeight: 'bold', color: color, fontSize: '13px' }}>Titik Akhir</span>
                   </div>
                   {route.userName && <p style={{ fontSize: '13px', fontWeight: '700', margin: '2px 0', color: theme.popupText }}>{route.userName}</p>}
                   {route.ruas_jalan_name && <p style={{ fontSize: '11px', color: theme.popupMuted, margin: '2px 0' }}>{route.ruas_jalan_name}</p>}
@@ -733,7 +831,7 @@ const RoadDamageMap = ({
             </Marker>
           )}
 
-          {/* Marker kerusakan — difilter sesuai filter aktif */}
+          {/* Marker kerusakan — dimmed jika rute lain dipilih */}
           {filterDamages(route.damages || []).map((damage) => (
             damage.latitude && damage.longitude && (
               <CircleMarker
@@ -815,7 +913,7 @@ const RoadDamageMap = ({
                         </div>
                       </div>
                       <a
-                        href={`https://www.google.com/maps?q=${damage.latitude},${damage.longitude}`}
+                        href={`https://www.google.com/maps/search/?api=1&query=${damage.latitude.toFixed(8)},${damage.longitude.toFixed(8)}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{
@@ -990,7 +1088,7 @@ const RoadDamageMap = ({
                           </div>
                         </div>
                         <a
-                          href={`https://www.google.com/maps?q=${damage.latitude},${damage.longitude}`}
+                          href={`https://www.google.com/maps/search/?api=1&query=${damage.latitude.toFixed(8)},${damage.longitude.toFixed(8)}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           style={{
@@ -1112,7 +1210,7 @@ const RoadDamageMap = ({
 
                 {/* Link Google Maps */}
                 <a
-                  href={`https://www.google.com/maps?q=${marker.lat},${marker.lng}`}
+                  href={`https://www.google.com/maps/search/?api=1&query=${marker.lat.toFixed(8)},${marker.lng.toFixed(8)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{

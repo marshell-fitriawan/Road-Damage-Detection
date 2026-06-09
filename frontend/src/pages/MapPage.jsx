@@ -38,7 +38,7 @@ const setIfChanged = (setter, newValue) => {
 };
 
 // Floating Filter Panel (matches screenshot design)
-const FilterPanel = ({ filters, setFilters, markers, onClose }) => {
+const FilterPanel = ({ filters, setFilters, markers, onClose, onSwitchToAktivitas }) => {
   const [localFilters, setLocalFilters] = useState({ ...filters });
 
   const damageBreakdown = {
@@ -116,7 +116,10 @@ const FilterPanel = ({ filters, setFilters, markers, onClose }) => {
           <button className="px-4 py-1 text-sm font-bold text-white border-b-2 border-blue-500">
             FILTER
           </button>
-          <button className="px-4 py-1 text-sm font-semibold text-gray-400 hover:text-gray-200 transition">
+          <button
+            onClick={onSwitchToAktivitas}
+            className="px-4 py-1 text-sm font-semibold text-gray-400 hover:text-white transition"
+          >
             AKTIVITAS
           </button>
         </div>
@@ -265,7 +268,7 @@ const FilterPanel = ({ filters, setFilters, markers, onClose }) => {
 // ============================================================
 // Aktivitas Panel — menggunakan data REAL dari liveTracking API
 // ============================================================
-const AktivitasPanel = ({ liveTracking, onClose }) => {
+const AktivitasPanel = ({ liveTracking, onClose, onSwitchToFilter }) => {
   const activePetugasCount = liveTracking.length;
 
   // Hitung durasi sesi dalam menit/jam dari started_at
@@ -281,11 +284,6 @@ const AktivitasPanel = ({ liveTracking, onClose }) => {
     return sisa > 0 ? `${jam}j ${sisa}m` : `${jam} jam`;
   };
 
-  // Progress berdasarkan jumlah kerusakan (maks 20 = 100%)
-  const getProgress = (session) => {
-    const total = (session.road_damages || session.damages || []).length;
-    return Math.min(total / 20, 1);
-  };
 
   const petugasColors = [
     "#3b82f6", "#ef4444", "#22c55e",
@@ -297,7 +295,10 @@ const AktivitasPanel = ({ liveTracking, onClose }) => {
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
         <div className="flex gap-0">
-          <button className="px-4 py-1 text-sm font-semibold text-gray-400 hover:text-gray-200 transition">
+          <button
+            onClick={onSwitchToFilter}
+            className="px-4 py-1 text-sm font-semibold text-gray-400 hover:text-white transition"
+          >
             FILTER
           </button>
           <button className="px-4 py-1 text-sm font-bold text-white border-b-2 border-blue-500">
@@ -404,7 +405,6 @@ const AktivitasPanel = ({ liveTracking, onClose }) => {
               {liveTracking.slice(0, 5).map((session, idx) => {
                 const color = petugasColors[idx % petugasColors.length];
                 const durasi = getDurasi(session.started_at);
-                const progress = getProgress(session);
                 const namaRuas = session.ruas_jalan_name;
                 const lokasiRingkas = namaRuas
                   ? namaRuas.length > 24 ? namaRuas.substring(0, 24) + "…" : namaRuas
@@ -469,28 +469,12 @@ const AktivitasPanel = ({ liveTracking, onClose }) => {
                       </div>
                     </div>
 
-                    {/* Grid info: Kerusakan + Progress */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <p className="text-xs text-gray-400">Kerusakan</p>
-                        <p className="text-xs font-semibold text-white mt-0.5">
-                          {jumlahKerusakan} terdeteksi
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-400 mb-1.5">
-                          Progress
-                        </p>
-                        <div className="w-full bg-gray-700 rounded h-1.5">
-                          <div
-                            className="h-full rounded transition-all duration-500"
-                            style={{
-                              width: `${Math.max(progress * 100, 4)}%`,
-                              background: `linear-gradient(to right, ${color}, ${color}90)`,
-                            }}
-                          />
-                        </div>
-                      </div>
+                    {/* Kerusakan */}
+                    <div>
+                      <p className="text-xs text-gray-400">Kerusakan</p>
+                      <p className="text-xs font-semibold text-white mt-0.5">
+                        {jumlahKerusakan} terdeteksi
+                      </p>
                     </div>
                   </div>
                 );
@@ -554,6 +538,19 @@ const MapPage = () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
   }, [isLiveMode, filters]);
+
+  // Auto-open Aktivitas panel saat pertama kali ada petugas aktif
+  const autoOpenedRef = useRef(false);
+  useEffect(() => {
+    if (liveTracking.length > 0 && !autoOpenedRef.current) {
+      autoOpenedRef.current = true;
+      setOpenPanel("aktivitas");
+    }
+    // Reset jika semua petugas selesai agar bisa auto-open lagi nanti
+    if (liveTracking.length === 0) {
+      autoOpenedRef.current = false;
+    }
+  }, [liveTracking.length]);
 
   const loadData = async () => {
     setLoading(true);
@@ -797,12 +794,14 @@ const MapPage = () => {
                 setFilters={setFilters}
                 markers={markers}
                 onClose={() => setOpenPanel(null)}
+                onSwitchToAktivitas={() => setOpenPanel("aktivitas")}
               />
             )}
             {openPanel === "aktivitas" && (
               <AktivitasPanel
                 liveTracking={liveTracking}
                 onClose={() => setOpenPanel(null)}
+                onSwitchToFilter={() => setOpenPanel("filter")}
               />
             )}
           </div>

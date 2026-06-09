@@ -125,6 +125,81 @@ const BoundsController = () => {
   return null;
 };
 
+// ── Batas Wilayah Kubu Raya ──
+// Memuat kuburaya-boundary.json dan render sebagai polygon garis tepi
+const KubuRayaBoundaryLayer = () => {
+  const map = useMap();
+  const layerRef = useRef(null);
+
+  useEffect(() => {
+    fetch('/kuburaya-boundary.json')
+      .then(res => res.json())
+      .then(data => {
+        if (layerRef.current) { map.removeLayer(layerRef.current); }
+
+        const layer = L.geoJSON(data, {
+          style: () => ({
+            color: '#facc15',          // kuning terang
+            weight: 3,
+            opacity: 0.9,
+            fillColor: '#facc15',
+            fillOpacity: 0.05,         // hampir transparan, hanya hint warna
+            dashArray: '10, 6',        // garis putus-putus agar terlihat sebagai batas
+          }),
+        });
+
+        // Label "Wilayah Kubu Raya" di tengah
+        layer.eachLayer(lyr => {
+          if (lyr.getCenter) {
+            try {
+              const center = lyr.getCenter();
+              const label = L.marker(center, {
+                icon: L.divIcon({
+                  className: '',
+                  html: `<div style="
+                    background: rgba(250,204,21,0.15);
+                    border: 1px solid rgba(250,204,21,0.5);
+                    color: #facc15;
+                    font-size: 11px;
+                    font-weight: 700;
+                    padding: 3px 8px;
+                    border-radius: 4px;
+                    white-space: nowrap;
+                    letter-spacing: 0.5px;
+                    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+                  ">📍 Wilayah Kubu Raya</div>`,
+                  iconAnchor: [70, 10],
+                }),
+                interactive: false,
+                zIndexOffset: -100,
+              });
+              label.addTo(map);
+              // Simpan label agar bisa di-cleanup
+              if (!layerRef._labels) layerRef._labels = [];
+              layerRef._labels.push(label);
+            } catch (e) {}
+          }
+        });
+
+        layer.addTo(map);
+        layerRef.current = layer;
+      })
+      .catch(err => console.warn('Boundary load failed:', err));
+
+    return () => {
+      if (layerRef.current && map.hasLayer(layerRef.current)) {
+        map.removeLayer(layerRef.current);
+      }
+      if (layerRef._labels) {
+        layerRef._labels.forEach(l => { try { map.removeLayer(l); } catch(e){} });
+        layerRef._labels = [];
+      }
+    };
+  }, [map]);
+
+  return null;
+};
+
 // Komponen layer ruas jalan
 const RuasJalanLayer = ({ selectedRuas, onRuasListLoaded }) => {
   const map = useMap();
@@ -450,6 +525,9 @@ const MapPickerModal = ({ isOpen, onClose, onConfirm, currentLocation = null }) 
             <FlyToMyLocation location={currentLocation} shouldFly={isOpen} />
 
             <RuasJalanLayer selectedRuas={selectedRuas} onRuasListLoaded={setRuasList} />
+
+            {/* Batas wilayah Kubu Raya */}
+            <KubuRayaBoundaryLayer />
 
             <MapClickHandler
               step={step}
