@@ -18,6 +18,9 @@ import HistoryPage from "./pages/HistoryPage";
 import TrackingPage from "./pages/TrackingPage";
 import TrackingHistoryPage from "./pages/TrackingHistoryPage";
 import UserManagementPage from "./pages/UserManagementPage";
+import ProfilePage from "./pages/ProfilePage";
+import SettingsPage from "./pages/SettingsPage";
+import HelpPage from "./pages/HelpPage";
 import "./index.css";
 
 // Halaman yang TIDAK pakai wrapper max-w / padding
@@ -29,10 +32,15 @@ const AppContent = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen" style={{ backgroundColor: 'var(--color-secondary)' }}>
+      <div
+        className="flex items-center justify-center h-screen"
+        style={{ backgroundColor: "var(--color-secondary)" }}
+      >
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4" style={{ color: 'var(--color-text-muted)' }}>Memuat sistem...</p>
+          <p className="mt-4" style={{ color: "var(--color-text-muted)" }}>
+            Memuat sistem...
+          </p>
         </div>
       </div>
     );
@@ -45,8 +53,18 @@ const AppContent = () => {
   const isAdminRoute = location.pathname.startsWith("/admin/");
   const isPetugasRoute = location.pathname.startsWith("/petugas/");
 
-  // Cek apakah halaman saat ini adalah halaman peta
+  // Halaman peta: full screen tanpa wrapper
   const isMapRoute = MAP_ROUTES.some((r) => location.pathname === r);
+
+  // Halaman profil/pengaturan/bantuan: punya header sendiri, tanpa wrapper max-w
+  const isFullPageRoute = [
+    "/admin/profil",
+    "/admin/pengaturan",
+    "/admin/bantuan",
+    "/petugas/profil",
+    "/petugas/pengaturan",
+    "/petugas/bantuan",
+  ].includes(location.pathname);
 
   const routes = (
     <Routes>
@@ -65,7 +83,7 @@ const AppContent = () => {
         }
       />
 
-      {/* Petugas Routes */}
+      {/* ── Petugas Routes ── */}
       <Route
         path="/petugas/dashboard"
         element={
@@ -98,8 +116,32 @@ const AppContent = () => {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/petugas/profil"
+        element={
+          <ProtectedRoute roles={["petugas"]}>
+            <ProfilePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/petugas/pengaturan"
+        element={
+          <ProtectedRoute roles={["petugas"]}>
+            <SettingsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/petugas/bantuan"
+        element={
+          <ProtectedRoute roles={["petugas"]}>
+            <HelpPage />
+          </ProtectedRoute>
+        }
+      />
 
-      {/* Admin Routes */}
+      {/* ── Admin Routes ── */}
       <Route
         path="/admin/dashboard"
         element={
@@ -140,6 +182,30 @@ const AppContent = () => {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/admin/profil"
+        element={
+          <ProtectedRoute roles={["admin"]}>
+            <ProfilePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/pengaturan"
+        element={
+          <ProtectedRoute roles={["admin"]}>
+            <SettingsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/bantuan"
+        element={
+          <ProtectedRoute roles={["admin"]}>
+            <HelpPage />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   );
 
@@ -148,11 +214,7 @@ const AppContent = () => {
       {/* TopNavbar — tampil di semua halaman admin/petugas */}
       {(isAdminRoute || isPetugasRoute) && <TopNavbar />}
 
-      {/* 
-        Halaman peta: TANPA wrapper max-w / padding — langsung isi sisa tinggi layar.
-        Halaman lain: pakai wrapper normal dengan max-w dan padding.
-        Navbar height: ~57px mobile, ~64px desktop.
-      */}
+      {/* Peta: full screen */}
       {isMapRoute ? (
         <div
           className="mobile-content-height lg:desktop-content-height"
@@ -166,7 +228,16 @@ const AppContent = () => {
         >
           {routes}
         </div>
+      ) : isFullPageRoute ? (
+        /* Profil / Pengaturan / Bantuan: tanpa wrapper, page punya header sendiri */
+        <div
+          className="w-full overflow-auto"
+          style={{ minHeight: "calc(100vh - 57px)" }}
+        >
+          {routes}
+        </div>
       ) : (
+        /* Halaman normal */
         <main
           className="w-full overflow-auto"
           style={{ minHeight: "calc(100vh - 57px)" }}
