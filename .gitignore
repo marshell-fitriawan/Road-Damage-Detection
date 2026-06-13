@@ -37,16 +37,10 @@ Model/train/
 Model/valid/
 Model/test/
 
-# Model - YOLO training output & cache
+# Model - YOLO training output, cache & output tools
 Model/runs/
 Model/saved_frames/
 Model/*.cache
-
-# Model - Model weights (*.pt besar)
-Model/*.pt
-Model/models/
-
-# Model - Output tools
 Model/output/
 Model/extracted_frames/
 
