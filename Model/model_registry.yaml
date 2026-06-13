@@ -1,0 +1,262 @@
+# =============================================================================
+# Model Registry — Daftar Semua Model yang Pernah Dilatih
+# =============================================================================
+# Cara pakai:
+#   1. Setelah selesai training di Google Colab, download best.pt
+#   2. Simpan ke folder models/ dengan nama: <exp_name>.pt
+#   3. Catat metrik hasil evaluasi di bawah
+#   4. Ubah `active_model` di config.yaml untuk mengganti model aktif
+#
+# Naming convention: <base_model>_<tanggal>_exp<nomor>_<catatan>
+# Contoh: yolov8n_seg_20260609_exp01_baseline
+# =============================================================================
+
+# Model SAAT INI aktif — ditunjuk oleh config.yaml -> model.active_model
+# (lihat file config.yaml untuk mengubah)
+
+# =============================================================================
+# REGISTRY — Isi sesuai hasil training Anda
+# =============================================================================
+
+models:
+  exp01_baseline:
+    weights_path: "models/exp01_baseline/weights/best.pt"
+    base_model: "yolov8n-seg.pt"
+    tanggal: "2026-06-09"
+    epochs: 100
+    batch: 8
+    imgsz: 640
+    lr0: 0.001
+    optimizer: "AdamW"
+    seed: 0
+    patience: 30
+    dataset: "Roboflow publik (3.064 gambar, train 2.709/val 226/test 129)"
+    data_split: "val"
+    augmented: true
+    augmentasi: "fliplr 50%, mosaic 1.0, hsv_h 0.015, hsv_s 0.7, hsv_v 0.4"
+    negatif_images: false
+    # Metrik pada VALIDATION set (best.pt dipilih oleh Ultralytics berdasarkan val mAP)
+    map50_box: 0.7711
+    map50_95_box: 0.5142
+    map50_mask: 0.7560
+    map50_95_mask: 0.4244
+    precision: 0.7977
+    recall: 0.7771
+    f1: 0.7505
+    # Metrik pada TEST set (129 gambar, 199 instance — dieksekusi 13 Jun 2026)
+    test_map50_box: 0.7602
+    test_map50_95_box: 0.5148
+    test_map50_mask: 0.7274
+    test_map50_95_mask: 0.4202
+    test_precision: 0.7425
+    test_recall: 0.7602
+    test_f1: 0.7512
+    fps: ~
+    notes: "Baseline pertama — mAP50 mask 0.7560 val / 0.7274 test. Masih false positive pada objek non-jalan. Confidence threshold dinaikkan ke 0.40. Performa per kelas: Lubang 0.89, Retak Memanjang 0.80, Retak Melintang 0.78, Retak Buaya 0.57."
+
+  exp02_tambah_negatif:
+    weights_path: "models/exp02_tambah_negatif/weights/best.pt"
+    base_model: "yolov8n-seg.pt"
+    tanggal: ~
+    epochs: 100
+    batch: 8
+    imgsz: 640
+    lr0: 0.001
+    optimizer: "AdamW"
+    patience: 30
+    dataset: "Roboflow + 200-300 gambar negatif jalan bagus"
+    negatif_images: true
+    map50_box: ~
+    map50_95_box: ~
+    map50_mask: ~
+    map50_95_mask: ~
+    precision: ~
+    recall: ~
+    f1: ~
+    fps: ~
+    notes: "Tambah gambar negatif — target mengurangi false positive pada objek non-jalan"
+
+  exp03_small_model:
+    weights_path: "models/exp03_small_model/weights/best.pt"
+    base_model: "yolov8s-seg.pt"
+    tanggal: ~
+    epochs: 100
+    batch: 8
+    imgsz: 640
+    lr0: 0.001
+    optimizer: "AdamW"
+    patience: 30
+    dataset: "Roboflow + gambar negatif"
+    negatif_images: true
+    map50_box: ~
+    map50_95_box: ~
+    map50_mask: ~
+    map50_95_mask: ~
+    precision: ~
+    recall: ~
+    f1: ~
+    fps: ~
+    notes: "YOLOv8s-seg (~11,2M params) — kapasitas lebih besar dari nano"
+
+  exp04_lr_kecil:
+    weights_path: "models/exp04_lr_kecil/weights/best.pt"
+    base_model: "yolov8n-seg.pt"
+    tanggal: ~
+    epochs: 100
+    batch: 8
+    imgsz: 640
+    lr0: 0.0005
+    optimizer: "AdamW"
+    patience: 30
+    dataset: "Roboflow + gambar negatif"
+    negatif_images: true
+    map50_box: ~
+    map50_95_box: ~
+    map50_mask: ~
+    map50_95_mask: ~
+    precision: ~
+    recall: ~
+    f1: ~
+    fps: ~
+    notes: "Learning rate lebih kecil — training lebih stabil"
+
+  exp05_epoch_150:
+    weights_path: "models/exp05_epoch_150/weights/best.pt"
+    base_model: "yolov8n-seg.pt"
+    tanggal: ~
+    epochs: 150
+    batch: 8
+    imgsz: 640
+    lr0: 0.001
+    optimizer: "AdamW"
+    patience: 30
+    dataset: "Roboflow + gambar negatif"
+    negatif_images: true
+    map50_box: ~
+    map50_95_box: ~
+    map50_mask: ~
+    map50_95_mask: ~
+    precision: ~
+    recall: ~
+    f1: ~
+    fps: ~
+    notes: "Epoch lebih panjang — model lebih matang"
+
+  exp06_brightness_aug:
+    weights_path: "models/exp06_brightness_aug/weights/best.pt"
+    base_model: "yolov8n-seg.pt"
+    tanggal: ~
+    epochs: 100
+    batch: 8
+    imgsz: 640
+    lr0: 0.001
+    optimizer: "AdamW"
+    patience: 30
+    dataset: "Roboflow + negatif + augmentasi brightness tinggi"
+    negatif_images: true
+    map50_box: ~
+    map50_95_box: ~
+    map50_mask: ~
+    map50_95_mask: ~
+    precision: ~
+    recall: ~
+    f1: ~
+    fps: ~
+    notes: "Augmentasi brightness tinggi — kuat untuk kondisi malam/sore"
+
+  exp07_blur_aug:
+    weights_path: "models/exp07_blur_aug/weights/best.pt"
+    base_model: "yolov8n-seg.pt"
+    tanggal: ~
+    epochs: 100
+    batch: 8
+    imgsz: 640
+    lr0: 0.001
+    optimizer: "AdamW"
+    patience: 30
+    dataset: "Roboflow + negatif + augmentasi blur ringan"
+    negatif_images: true
+    map50_box: ~
+    map50_95_box: ~
+    map50_mask: ~
+    map50_95_mask: ~
+    precision: ~
+    recall: ~
+    f1: ~
+    fps: ~
+    notes: "Augmentasi blur ringan — kuat terhadap kamera bergerak dari kendaraan"
+
+  exp08_seed_berbeda:
+    weights_path: "models/exp08_seed_berbeda/weights/best.pt"
+    base_model: "yolov8n-seg.pt"
+    tanggal: ~
+    epochs: 100
+    batch: 8
+    imgsz: 640
+    lr0: 0.001
+    optimizer: "AdamW"
+    patience: 30
+    seed: 123
+    dataset: "Roboflow + negatif"
+    negatif_images: true
+    map50_box: ~
+    map50_95_box: ~
+    map50_mask: ~
+    map50_95_mask: ~
+    precision: ~
+    recall: ~
+    f1: ~
+    fps: ~
+    notes: "Seed berbeda — uji stabilitas training"
+
+  exp09_kombinasi:
+    weights_path: "models/exp09_kombinasi/weights/best.pt"
+    base_model: "yolov8s-seg.pt"
+    tanggal: ~
+    epochs: 150
+    batch: 8
+    imgsz: 640
+    lr0: 0.0005
+    optimizer: "AdamW"
+    patience: 30
+    dataset: "Roboflow + negatif + brightness + blur"
+    negatif_images: true
+    map50_box: ~
+    map50_95_box: ~
+    map50_mask: ~
+    map50_95_mask: ~
+    precision: ~
+    recall: ~
+    f1: ~
+    fps: ~
+    notes: "Kombinasi: small model + epoch panjang + lr kecil + augmentasi lengkap"
+
+  exp10_final:
+    weights_path: "models/exp10_final/weights/best.pt"
+    base_model: "yolov8s-seg.pt"
+    tanggal: ~
+    epochs: 200
+    batch: 16
+    imgsz: 640
+    lr0: 0.0005
+    optimizer: "AdamW"
+    patience: 30
+    dataset: "Roboflow + negatif + augmentasi lengkap"
+    negatif_images: true
+    map50_box: ~
+    map50_95_box: ~
+    map50_mask: ~
+    map50_95_mask: ~
+    precision: ~
+    recall: ~
+    f1: ~
+    fps: ~
+    notes: "Eksperimen final — kombinasi terbaik dari exp01-09"
+
+# =============================================================================
+# Model-model pilihan untuk deployment cepat
+# =============================================================================
+selected:
+  best_overall: ~ # Model dengan mAP50 terbaik
+  best_recall: ~ # Model dengan Recall tertinggi
+  best_lightweight: ~ # Model nano terbaik (untuk speed)

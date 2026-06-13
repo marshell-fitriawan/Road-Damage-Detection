@@ -1,0 +1,13 @@
+train: train/images
+val: valid/images
+test: test/images
+
+nc: 4
+names: ["Retak-Buaya", "Retak-Memanjang", "Retak-Melintang", "Lubang"]
+
+roboflow:
+  workspace: marz-cbyhs
+  project: road-crack-detection-and-classification-wltp1
+  version: 1
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/marz-cbyhs/road-crack-detection-and-classification-wltp1/dataset/1

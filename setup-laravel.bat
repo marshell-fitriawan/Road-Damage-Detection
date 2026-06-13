@@ -4,7 +4,7 @@ echo Road Damage Detection - Laravel Setup
 echo ========================================
 echo.
 
-cd backend
+cd Backend
 
 echo [1/6] Checking Composer...
 where composer >nul 2>&1
@@ -52,8 +52,8 @@ echo Laravel Backend Setup Complete!
 echo ========================================
 echo.
 echo Next steps:
-echo 1. Configure database in backend/.env if needed
-echo 2. Install frontend: cd frontend ^&^& npm install
+echo 1. Configure database in Backend/.env if needed
+echo 2. Install frontend: cd Frontend ^&^& npm install
 echo 3. Start services with start.bat
 echo.
 pause

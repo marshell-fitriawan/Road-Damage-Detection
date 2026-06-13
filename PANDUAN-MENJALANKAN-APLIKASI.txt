@@ -72,7 +72,7 @@
 
   Buka CMD / Terminal, lalu jalankan:
 
-    cd C:\laragon\www\Road-Damage-Detection\backend
+    cd C:\laragon\www\Road-Damage-Detection\Backend
     composer install
 
   Tunggu sampai selesai menginstall semua package PHP.
@@ -100,7 +100,7 @@
 
   Buka CMD / Terminal, lalu jalankan:
 
-    cd C:\laragon\www\Road-Damage-Detection\frontend
+    cd C:\laragon\www\Road-Damage-Detection\Frontend
     npm install
 
   Tunggu sampai selesai menginstall semua package JavaScript.
@@ -138,13 +138,13 @@
     → Tunggu sampai muncul: "API berjalan di http://localhost:5000"
 
   TERMINAL 2 - LARAVEL BACKEND:
-    cd C:\laragon\www\Road-Damage-Detection\backend
+    cd C:\laragon\www\Road-Damage-Detection\Backend
     C:\laragon\bin\php\php-8.3.16-Win32-vs16-x64\php.exe artisan serve --port=8000
 
     → Tunggu sampai muncul: "Server running on http://127.0.0.1:8000"
 
   TERMINAL 3 - REACT FRONTEND:
-    cd C:\laragon\www\Road-Damage-Detection\frontend
+    cd C:\laragon\www\Road-Damage-Detection\Frontend
     npm run dev
 
     → Tunggu sampai muncul: "Local: http://localhost:3000/"
@@ -203,16 +203,16 @@
   SOLUSI : - Pastikan Laragon sudah berjalan dan MySQL aktif
            - Pastikan database "road_damage_detection" sudah dibuat
            - Cek port MySQL di Laragon (harus 3307)
-           - Jika port berbeda, edit file: backend\.env → ubah DB_PORT
+           - Jika port berbeda, edit file: Backend\.env → ubah DB_PORT
 
   MASALAH: "YOLO model not found" atau error saat python api.py
-  SOLUSI : - Pastikan file model ada di: runs\segment\train\weights\best.pt
+  SOLUSI : - Pastikan file model ada di: Model\runs\segment\train\weights\best.pt
            - Pastikan Python packages terinstall: pip install flask ultralytics opencv-python
 
   MASALAH: Halaman web kosong / error saat buka localhost:3000
   SOLUSI : - Pastikan ketiga service sudah berjalan (YOLO, Laravel, React)
            - Cek console browser (F12) untuk melihat error
-           - Pastikan npm install sudah dijalankan di folder frontend
+           - Pastikan npm install sudah dijalankan di folder Frontend
 
   MASALAH: Login gagal / password salah
   SOLUSI : - Pastikan sudah menjalankan: php artisan db:seed
@@ -222,24 +222,19 @@
 
   MASALAH: Foto kerusakan tidak muncul (broken image)
   SOLUSI : - Pastikan sudah menjalankan: php artisan storage:link
-           - Pastikan folder backend\storage\app\public\uploads ada
+           - Pastikan folder Backend\storage\app\public\uploads ada
 
   MASALAH: Port 8000 sudah digunakan
   SOLUSI : - Matikan proses yang menggunakan port tersebut, atau
            - Gunakan port lain: php artisan serve --port=8001
-           - Update proxy di frontend\vite.config.js sesuai port baru
+           - Update proxy di Frontend\vite.config.js sesuai port baru
 
 ================================================================================
   STRUKTUR FOLDER PROJECT
 ================================================================================
 
   Road-Damage-Detection/
-  ├── api.py                    ← YOLO API server (Python)
-  ├── start.bat                 ← Script untuk menjalankan semua service
-  ├── runs/                     ← Model YOLO trained (best.pt)
-  ├── train/ valid/ test/       ← Dataset training
-  │
-  ├── backend/                  ← Laravel (PHP)
+  ├── Backend/                  ← Laravel (PHP)
   │   ├── app/
   │   │   ├── Models/           ← User, TrackingSession, RoadDamage
   │   │   └── Http/Controllers/ ← Auth, RoadDamage, Tracking, UserManagement
@@ -247,14 +242,25 @@
   │   ├── routes/api.php        ← Daftar API endpoint
   │   └── .env                  ← Konfigurasi database & environment
   │
-  └── frontend/                 ← React (JavaScript)
-      ├── public/               ← File statis (boundary peta Kubu Raya)
-      └── src/
-          ├── contexts/         ← AuthContext (state login)
-          ├── services/         ← API service (axios)
-          ├── components/       ← ProtectedRoute, RoadDamageMap
-          └── pages/            ← Login, Dashboard Admin/Petugas, Peta,
-                                   Tracking, Riwayat, Kelola Pengguna, dll
+  ├── Frontend/                 ← React (JavaScript)
+  │   ├── public/               ← File statis (boundary peta Kubu Raya)
+  │   └── src/
+  │       ├── contexts/         ← AuthContext (state login)
+  │       ├── services/         ← API service (axios)
+  │       ├── components/       ← ProtectedRoute, RoadDamageMap
+  │       └── pages/            ← Login, Dashboard Admin/Petugas, Peta,
+  │                                Tracking, Riwayat, Kelola Pengguna, dll
+  │
+  └── Model/                    ← YOLO & dataset
+      ├── api.py                ← YOLO API server (Python)
+      ├── testingv1.py          ← Testing & streaming (Python)
+      ├── runs/                 ← Model YOLO trained (best.pt)
+      ├── train/ valid/ test/   ← Dataset training
+      ├── data.yaml             ← Konfigurasi dataset
+      ├── yolo26n.pt            ← Model YOLOv8 (26n)
+      ├── yolov8n-seg.pt        ← Model YOLOv8n-seg
+      ├── README.dataset.txt
+      └── README.roboflow.txt
 
 ================================================================================
   CATATAN PENTING

@@ -1,26 +1,26 @@
 # Laravel
-backend/vendor/
-backend/node_modules/
-backend/.env
-backend/storage/*.key
-backend/storage/app/*
-backend/storage/framework/cache/*
-backend/storage/framework/sessions/*
-backend/storage/framework/views/*
-backend/storage/logs/*
-!backend/storage/app/.gitkeep
-!backend/storage/app/public/.gitkeep
-!backend/storage/framework/.gitkeep
-!backend/storage/logs/.gitkeep
-backend/bootstrap/cache/*
-!backend/bootstrap/cache/.gitkeep
+Backend/vendor/
+Backend/node_modules/
+Backend/.env
+Backend/storage/*.key
+Backend/storage/app/*
+Backend/storage/framework/cache/*
+Backend/storage/framework/sessions/*
+Backend/storage/framework/views/*
+Backend/storage/logs/*
+!Backend/storage/app/.gitkeep
+!Backend/storage/app/public/.gitkeep
+!Backend/storage/framework/.gitkeep
+!Backend/storage/logs/.gitkeep
+Backend/bootstrap/cache/*
+!Backend/bootstrap/cache/.gitkeep
 
 # React/Node
-frontend/node_modules/
-frontend/dist/
-frontend/.env
-frontend/.env.local
-frontend/.env.production
+Frontend/node_modules/
+Frontend/dist/
+Frontend/.env
+Frontend/.env.local
+Frontend/.env.production
 
 # Python
 __pycache__/
@@ -32,7 +32,25 @@ venv/
 env/
 ENV/
 
-# YOLO
+# Model - Dataset (gambar besar, tidak perlu di-version control)
+Model/train/
+Model/valid/
+Model/test/
+
+# Model - YOLO training output & cache
+Model/runs/
+Model/saved_frames/
+Model/*.cache
+
+# Model - Model weights (*.pt besar)
+Model/*.pt
+Model/models/
+
+# Model - Output tools
+Model/output/
+Model/extracted_frames/
+
+# YOLO lama (sudah dipindah ke Model/)
 runs/
 saved_frames/
 *.pt.bak

@@ -1,0 +1,39 @@
+# =============================================================================
+# Konfigurasi Model & Deteksi — Road Damage Detection System
+# =============================================================================
+# File ini mengontrol:
+#   1. Model mana yang aktif (active_model)
+#   2. Parameter deteksi (confidence threshold, area minimum, dll.)
+#   3. Path penyimpanan
+#
+# Cara mengganti model aktif:
+#   Ubah nilai `active_model` sesuai nama model di model_registry.yaml
+# =============================================================================
+
+model:
+  # Nama model aktif — harus cocok dengan key di model_registry.yaml
+  active_model: "exp01_baseline"
+
+  # Fallback: jika best.pt tidak ditemukan, coba last.pt
+  fallback_weights: "models/last.pt"
+
+  confidence_threshold: 0.40   # Confidence minimum (naik dari 0.15 untuk kurangi FP)
+  iou_threshold: 0.45          # IoU threshold untuk NMS
+  image_size: 640              # Input size model (piksel)
+
+detection:
+  min_area_px: 1024            # Area minimum bounding box (px²), 1024 = 32×32
+  enable_quality_check: true   # Aktifkan filter kualitas gambar (brightness + blur)
+  min_brightness: 30           # Rata-rata piksel minimum (0-255)
+  min_blur_score: 50           # Laplacian variance minimum
+
+paths:
+  models_dir: "models/"
+  saved_frames: "saved_frames/"
+  runs: "runs/"
+  logs: "logs/"
+
+flask:
+  host: "0.0.0.0"
+  port: 5000
+  debug: false

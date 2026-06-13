@@ -26,9 +26,9 @@ Pastikan sudah terinstall:
 
 ### Opsi 2: Manual
 
-1. **Masuk ke folder backend:**
+1. **Masuk ke folder Backend:**
    ```bash
-   cd backend
+   cd Backend
    ```
 
 2. **Install dependencies:**
@@ -78,7 +78,7 @@ YOLO_API_URL=http://localhost:5000
 ## Menjalankan Server
 
 ```bash
-cd backend
+cd Backend
 php artisan serve
 ```
 
@@ -113,7 +113,7 @@ Response:
 
 **Solusi:**
 ```bash
-cd backend
+cd Backend
 composer dump-autoload
 php artisan config:clear
 php artisan cache:clear
@@ -149,7 +149,7 @@ php artisan key:generate
 ## Struktur Folder
 
 ```
-backend/
+Backend/
 ├── app/
 │   ├── Http/Controllers/
 │   │   └── RoadDamageController.php
@@ -240,7 +240,7 @@ Setelah Laravel setup selesai:
 
 1. ✅ Setup Frontend:
    ```bash
-   cd frontend
+   cd Frontend
    npm install
    ```
 
@@ -252,14 +252,14 @@ Setelah Laravel setup selesai:
 
 3. ✅ Buka aplikasi:
    - Frontend: http://localhost:3000
-   - Backend API: http://localhost:8000
-   - YOLO API: http://localhost:5000
+    - Backend API: http://localhost:8000
+    - YOLO API: http://localhost:5000
 
 ## Support
 
 Jika ada masalah:
 1. Cek [TROUBLESHOOTING.md](../TROUBLESHOOTING.md)
-2. Cek Laravel logs: `backend/storage/logs/laravel.log`
+2. Cek Laravel logs: `Backend/storage/logs/laravel.log`
 3. Hubungi developer
 
 ---

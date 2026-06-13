@@ -15,13 +15,13 @@ set "PROJECT_PATH=%~dp0"
 set "PATH=%PHP_PATH%;%PATH%"
 
 echo  [1/3] Starting YOLO API...
-start "YOLO-API" /MIN cmd /c "cd /d "%PROJECT_PATH%" && python api.py"
+start "YOLO-API" /MIN cmd /c "cd /d "%PROJECT_PATH%" && python Model/api.py"
 
 echo  [2/3] Starting Laravel Backend...
-start "Laravel-Backend" /MIN cmd /c "cd /d "%PROJECT_PATH%backend" && "%PHP_PATH%\php.exe" artisan serve --host=0.0.0.0 --port=8000"
+start "Laravel-Backend" /MIN cmd /c "cd /d "%PROJECT_PATH%Backend" && "%PHP_PATH%\php.exe" artisan serve --host=0.0.0.0 --port=8000"
 
 echo  [3/3] Starting React Frontend...
-start "React-Frontend" /MIN cmd /c "cd /d "%PROJECT_PATH%frontend" && npm run dev"
+start "React-Frontend" /MIN cmd /c "cd /d "%PROJECT_PATH%Frontend" && npm run dev"
 
 echo.
 echo  Menunggu semua service siap...
