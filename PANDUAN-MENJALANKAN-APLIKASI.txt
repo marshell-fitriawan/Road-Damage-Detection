@@ -1,0 +1,271 @@
+================================================================================
+  PANDUAN MENJALANKAN APLIKASI
+  SISTEM MONITORING & TRACKING KERUSAKAN JALAN
+  Dinas Pekerjaan Umum Kabupaten Kubu Raya
+================================================================================
+
+  Aplikasi ini terdiri dari 3 service:
+  1. YOLO API      → Python (Flask + YOLOv8) - Deteksi kerusakan jalan
+  2. Laravel Backend → PHP (Laravel 10)       - API server & database
+  3. React Frontend  → JavaScript (React 18)  - Tampilan web
+
+================================================================================
+  PRASYARAT (INSTALL DULU SEBELUM MENJALANKAN)
+================================================================================
+
+  Pastikan software berikut sudah terinstall di komputer:
+
+  1. LARAGON (sudah termasuk PHP & MySQL)
+     Download: https://laragon.org/download/
+     - Pastikan MySQL berjalan di port 3307 (default Laragon)
+     - PHP 8.1 atau lebih baru
+
+  2. NODE.JS (versi 18 atau lebih baru)
+     Download: https://nodejs.org/
+     - Cek: buka CMD, ketik "node --version"
+
+  3. PYTHON (versi 3.9 atau lebih baru)
+     Download: https://www.python.org/downloads/
+     - Saat install, CENTANG "Add Python to PATH"
+     - Cek: buka CMD, ketik "python --version"
+
+  4. COMPOSER (PHP package manager)
+     Download: https://getcomposer.org/download/
+     - Cek: buka CMD, ketik "composer --version"
+
+  5. GIT (opsional, untuk clone project)
+     Download: https://git-scm.com/downloads
+
+================================================================================
+  LANGKAH 1: PERSIAPAN AWAL (HANYA SEKALI)
+================================================================================
+
+  Langkah ini hanya perlu dilakukan 1x saat pertama kali setup.
+
+  --- 1.1 Buka Laragon & Nyalakan MySQL ---
+
+  - Buka Laragon
+  - Klik "Start All" atau pastikan MySQL sudah berjalan
+  - MySQL harus berjalan di port 3307
+
+  --- 1.2 Buat Database ---
+
+  - Buka browser, akses: http://localhost/phpmyadmin
+    (atau klik kanan Laragon → MySQL → phpMyAdmin)
+  - Klik "New" di sidebar kiri
+  - Nama database: road_damage_detection
+  - Klik "Create"
+
+  --- 1.3 Install Dependensi Python (YOLO) ---
+
+  Buka CMD / Terminal, lalu jalankan:
+
+    pip install flask ultralytics opencv-python numpy Pillow
+
+  Tunggu sampai selesai. Ini akan menginstall:
+  - Flask (web server Python)
+  - Ultralytics (YOLOv8 framework)
+  - OpenCV (pengolahan gambar)
+  - NumPy & Pillow (library pendukung)
+
+  --- 1.4 Install Dependensi Laravel (Backend) ---
+
+  Buka CMD / Terminal, lalu jalankan:
+
+    cd C:\laragon\www\Road-Damage-Detection\backend
+    composer install
+
+  Tunggu sampai selesai menginstall semua package PHP.
+
+  Lalu jalankan perintah berikut satu per satu:
+
+    C:\laragon\bin\php\php-8.3.16-Win32-vs16-x64\php.exe artisan key:generate
+    C:\laragon\bin\php\php-8.3.16-Win32-vs16-x64\php.exe artisan migrate
+    C:\laragon\bin\php\php-8.3.16-Win32-vs16-x64\php.exe artisan db:seed
+    C:\laragon\bin\php\php-8.3.16-Win32-vs16-x64\php.exe artisan storage:link
+
+  Penjelasan:
+  - key:generate  → Membuat APP_KEY untuk enkripsi
+  - migrate       → Membuat tabel di database (users, tracking_sessions, road_damages)
+  - db:seed       → Mengisi akun default (admin & petugas)
+  - storage:link  → Membuat link untuk akses foto kerusakan
+
+  CATATAN: Jika PHP sudah ada di PATH sistem, cukup ketik:
+    php artisan key:generate
+    php artisan migrate
+    php artisan db:seed
+    php artisan storage:link
+
+  --- 1.5 Install Dependensi React (Frontend) ---
+
+  Buka CMD / Terminal, lalu jalankan:
+
+    cd C:\laragon\www\Road-Damage-Detection\frontend
+    npm install
+
+  Tunggu sampai selesai menginstall semua package JavaScript.
+
+================================================================================
+  LANGKAH 2: MENJALANKAN APLIKASI
+================================================================================
+
+  Ada 2 cara menjalankan aplikasi:
+
+  ==============================
+  CARA 1: OTOMATIS (RECOMMENDED)
+  ==============================
+
+  1. Pastikan Laragon sudah berjalan (MySQL aktif)
+  2. Buka File Explorer
+  3. Pergi ke: C:\laragon\www\Road-Damage-Detection
+  4. Klik 2x file: start.bat
+  5. Tunggu sampai muncul tulisan "SEMUA SERVICE BERHASIL DIJALANKAN!"
+  6. Buka browser: http://localhost:3000
+  7. Login dengan akun di bawah
+
+  Untuk STOP semua service: tekan tombol apa saja di jendela start.bat
+
+  ==============================
+  CARA 2: MANUAL (3 Terminal)
+  ==============================
+
+  Buka 3 jendela CMD / Terminal terpisah:
+
+  TERMINAL 1 - YOLO API:
+    cd C:\laragon\www\Road-Damage-Detection
+    python api.py
+
+    → Tunggu sampai muncul: "API berjalan di http://localhost:5000"
+
+  TERMINAL 2 - LARAVEL BACKEND:
+    cd C:\laragon\www\Road-Damage-Detection\backend
+    C:\laragon\bin\php\php-8.3.16-Win32-vs16-x64\php.exe artisan serve --port=8000
+
+    → Tunggu sampai muncul: "Server running on http://127.0.0.1:8000"
+
+  TERMINAL 3 - REACT FRONTEND:
+    cd C:\laragon\www\Road-Damage-Detection\frontend
+    npm run dev
+
+    → Tunggu sampai muncul: "Local: http://localhost:3000/"
+
+  Setelah ketiga terminal berjalan, buka browser: http://localhost:3000
+
+  UNTUK DIBUKA DARI HP / DEVICE LAIN DI WIFI YANG SAMA:
+  - Pastikan laptop dan HP tersambung ke jaringan WiFi yang sama
+  - Cari IP laptop dengan perintah: ipconfig
+  - Buka di HP: https://192.168.70.77:3000
+    (ganti dengan IP WiFi laptop kamu sendiri)
+  - Jika muncul peringatan sertifikat, lanjutkan ke advanced/proceed
+  - Jika masih gagal, pastikan firewall Windows tidak memblokir port 3000, 8000, dan 5000
+
+================================================================================
+  LANGKAH 3: LOGIN
+================================================================================
+
+  Buka browser: http://localhost:3000
+
+  AKUN ADMIN:
+    Email    : admin@admin.com
+    Password : admin123
+
+  AKUN PETUGAS:
+    Email    : petugas@petugas.com
+    Password : petugas123
+
+  PERBEDAAN ROLE:
+  - Admin    → Dashboard statistik, peta monitoring, kelola data kerusakan,
+                kelola akun pengguna, lihat semua riwayat tracking
+  - Petugas  → Mulai/selesai tracking, lihat peta, riwayat tracking sendiri
+
+================================================================================
+  SERVICE & PORT
+================================================================================
+
+  Service              URL                       Keterangan
+  -------------------  ------------------------  --------------------------------
+  YOLO API (Python)    http://localhost:5000      Model deteksi YOLOv8
+  Laravel Backend      http://localhost:8000      API server + database
+  React Frontend       http://localhost:3000      Tampilan web (BUKA INI)
+
+  Catatan akses HP: gunakan https://IP-LAPTOP:3000, bukan localhost.
+
+================================================================================
+  TROUBLESHOOTING (JIKA ADA MASALAH)
+================================================================================
+
+  MASALAH: "php is not recognized"
+  SOLUSI : Gunakan path lengkap PHP:
+           C:\laragon\bin\php\php-8.3.16-Win32-vs16-x64\php.exe
+           Atau gunakan start.bat yang sudah mengatur path otomatis.
+
+  MASALAH: "SQLSTATE[HY000] [2002] Connection refused" (database error)
+  SOLUSI : - Pastikan Laragon sudah berjalan dan MySQL aktif
+           - Pastikan database "road_damage_detection" sudah dibuat
+           - Cek port MySQL di Laragon (harus 3307)
+           - Jika port berbeda, edit file: backend\.env → ubah DB_PORT
+
+  MASALAH: "YOLO model not found" atau error saat python api.py
+  SOLUSI : - Pastikan file model ada di: runs\segment\train\weights\best.pt
+           - Pastikan Python packages terinstall: pip install flask ultralytics opencv-python
+
+  MASALAH: Halaman web kosong / error saat buka localhost:3000
+  SOLUSI : - Pastikan ketiga service sudah berjalan (YOLO, Laravel, React)
+           - Cek console browser (F12) untuk melihat error
+           - Pastikan npm install sudah dijalankan di folder frontend
+
+  MASALAH: Login gagal / password salah
+  SOLUSI : - Pastikan sudah menjalankan: php artisan db:seed
+           - Gunakan email: admin@admin.com (password: admin123)
+           - Jika masih gagal, jalankan ulang:
+             php artisan migrate:fresh --seed
+
+  MASALAH: Foto kerusakan tidak muncul (broken image)
+  SOLUSI : - Pastikan sudah menjalankan: php artisan storage:link
+           - Pastikan folder backend\storage\app\public\uploads ada
+
+  MASALAH: Port 8000 sudah digunakan
+  SOLUSI : - Matikan proses yang menggunakan port tersebut, atau
+           - Gunakan port lain: php artisan serve --port=8001
+           - Update proxy di frontend\vite.config.js sesuai port baru
+
+================================================================================
+  STRUKTUR FOLDER PROJECT
+================================================================================
+
+  Road-Damage-Detection/
+  ├── api.py                    ← YOLO API server (Python)
+  ├── start.bat                 ← Script untuk menjalankan semua service
+  ├── runs/                     ← Model YOLO trained (best.pt)
+  ├── train/ valid/ test/       ← Dataset training
+  │
+  ├── backend/                  ← Laravel (PHP)
+  │   ├── app/
+  │   │   ├── Models/           ← User, TrackingSession, RoadDamage
+  │   │   └── Http/Controllers/ ← Auth, RoadDamage, Tracking, UserManagement
+  │   ├── database/migrations/  ← Struktur tabel database
+  │   ├── routes/api.php        ← Daftar API endpoint
+  │   └── .env                  ← Konfigurasi database & environment
+  │
+  └── frontend/                 ← React (JavaScript)
+      ├── public/               ← File statis (boundary peta Kubu Raya)
+      └── src/
+          ├── contexts/         ← AuthContext (state login)
+          ├── services/         ← API service (axios)
+          ├── components/       ← ProtectedRoute, RoadDamageMap
+          └── pages/            ← Login, Dashboard Admin/Petugas, Peta,
+                                   Tracking, Riwayat, Kelola Pengguna, dll
+
+================================================================================
+  CATATAN PENTING
+================================================================================
+
+  1. Laragon HARUS berjalan sebelum menjalankan aplikasi (untuk MySQL).
+  2. Ketiga service (YOLO, Laravel, React) HARUS berjalan bersamaan.
+  3. Jangan tutup jendela CMD/Terminal selama aplikasi digunakan.
+  4. Untuk menambah akun pengguna baru, login sebagai Admin lalu
+     buka menu "Kelola Pengguna".
+  5. Saat petugas melakukan tracking, pastikan browser memiliki izin
+     akses kamera dan GPS (klik "Allow" saat diminta).
+
+================================================================================
