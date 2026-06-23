@@ -56,10 +56,110 @@
   --shadow-dropdown: 0 8px 32px rgba(0, 0, 0, 0.12);
 }
 
-/* Smooth theme transition */
-*, *::before, *::after {
-  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.15s ease, box-shadow 0.25s ease;
+
+/* ═══════════════════════════════════════════════════
+   THEME TRANSITION — smooth dark ↔ light
+   ═══════════════════════════════════════════════════ */
+
+/* ── View Transition API (Chrome/Edge 111+) ──────── */
+@keyframes theme-fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
 }
+@keyframes theme-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* 0.5s — cukup lama agar terlihat, tidak terasa lambat */
+::view-transition-old(root) {
+  animation: 0.5s cubic-bezier(0.4, 0, 0.2, 1) both theme-fade-out;
+}
+::view-transition-new(root) {
+  animation: 0.5s cubic-bezier(0.4, 0, 0.2, 1) both theme-fade-in;
+}
+
+/* ── #theme-overlay (overlay fallback JS) ─────────── */
+/* Properti posisi/z-index diset via JS.
+   Hanya pastikan compositing layer & will-change untuk GPU. */
+#theme-overlay {
+  will-change: opacity;
+}
+
+
+/* ═══════════════════════════════════════════════════
+   NAVBAR — sticky + glassmorphism on scroll
+   ═══════════════════════════════════════════════════ */
+
+/* Pastikan navbar sticky di atas konten saat scroll */
+nav[class*="border-b"] {
+  position: sticky;
+  top: 0;
+}
+
+/* Backdrop-filter support check */
+@supports (backdrop-filter: blur(12px)) {
+  .backdrop-blur-xl {
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   PAGE TRANSITION ANIMATIONS
+   (Animasi utama pakai Web Animations API di JS,
+    class berikut hanya sebagai fallback utility)
+   ═══════════════════════════════════════════════════ */
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+/* Utility classes untuk modal / drawer */
+.animate-slide-up   { animation: slideUpFade 0.3s  cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-fade-in    { animation: fadeIn      0.25s ease both; }
+.animate-slide-left { animation: slideInLeft 0.3s  cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+
+/* ── Toast Animations ────────────────────────────────────────────────── */
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(80px) scale(0.95); }
+  to   { opacity: 1; transform: translateX(0)    scale(1);    }
+}
+@keyframes shrinkBar {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+
+/* ── Performance: prefer-reduced-motion ─────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  /* Hanya matikan page transition & theme animation */
+  /* JANGAN matikan semua animasi — spinner dll tetap harus berputar */
+  .page-enter-active,
+  .animate-slide-up,
+  .animate-fade-in,
+  .animate-slide-left {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
+  }
+}
+
 
 @layer base {
   body {
@@ -118,9 +218,11 @@
 [data-theme="light"] .bg-accent      { background-color: var(--color-accent) !important; }
 
 /* Gray backgrounds → light equivalents */
+[data-theme="light"] .bg-gray-950   { background-color: #f8fafc !important; }
 [data-theme="light"] .bg-gray-900   { background-color: #ffffff !important; }
 [data-theme="light"] .bg-gray-800   { background-color: #f8fafc !important; }
 [data-theme="light"] .bg-gray-700   { background-color: #f1f5f9 !important; }
+[data-theme="light"] .bg-gray-600   { background-color: #e2e8f0 !important; }
 
 /* Text → dark equivalents */
 [data-theme="light"] .text-white     { color: #1e293b !important; }
@@ -129,10 +231,12 @@
 [data-theme="light"] .text-gray-300  { color: #475569 !important; }
 [data-theme="light"] .text-gray-400  { color: #64748b !important; }
 [data-theme="light"] .text-gray-500  { color: #94a3b8 !important; }
+[data-theme="light"] .text-gray-600  { color: #64748b !important; }
 
 /* Borders */
 [data-theme="light"] .border-gray-700 { border-color: #e2e8f0 !important; }
 [data-theme="light"] .border-gray-600 { border-color: #cbd5e1 !important; }
+[data-theme="light"] .border-gray-500 { border-color: #94a3b8 !important; }
 
 /* Specific component overrides */
 [data-theme="light"] .bg-\[\#1a2035\] { background-color: #ffffff !important; }
@@ -157,6 +261,7 @@
 [data-theme="light"] .bg-gray-700\/60 { background-color: rgba(226, 232, 240, 0.7) !important; }
 [data-theme="light"] .bg-gray-700\/50 { background-color: rgba(226, 232, 240, 0.5) !important; }
 [data-theme="light"] .bg-gray-600\/80 { background-color: rgba(203, 213, 225, 0.8) !important; }
+[data-theme="light"] .bg-gray-600\/50 { background-color: rgba(203, 213, 225, 0.5) !important; }
 
 /* Blue accents stay but soften */
 [data-theme="light"] .bg-blue-600\/30 { background-color: rgba(37, 99, 235, 0.1) !important; }
@@ -173,6 +278,8 @@
 /* Hover overrides */
 [data-theme="light"] .hover\:bg-gray-700\/50:hover { background-color: rgba(226, 232, 240, 0.5) !important; }
 [data-theme="light"] .hover\:bg-gray-800:hover { background-color: #f1f5f9 !important; }
+[data-theme="light"] .hover\:bg-gray-700:hover { background-color: #e2e8f0 !important; }
+[data-theme="light"] .hover\:bg-gray-600:hover { background-color: #cbd5e1 !important; }
 [data-theme="light"] .hover\:bg-gray-600\/80:hover { background-color: rgba(203, 213, 225, 0.8) !important; }
 [data-theme="light"] .hover\:text-white:hover { color: #1e293b !important; }
 
@@ -182,6 +289,18 @@
 /* Shadow for drawer & dropdown */
 [data-theme="light"] .shadow-xl { box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12) !important; }
 [data-theme="light"] .shadow-2xl { box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15) !important; }
+
+/* ── STATUS BADGES (bg-gray-600 text-white → light-friendly) ── */
+/* Badge "Selesai" / "Aktif" di TrackingHistoryPage dan status pill */
+[data-theme="light"] .bg-gray-600.text-white {
+  background-color: #e2e8f0 !important;
+  color: #374151 !important;
+}
+/* Override untuk badge yang pakai bg-gray-600 dengan teks white */
+[data-theme="light"] span.bg-gray-600 {
+  background-color: #e2e8f0 !important;
+  color: #475569 !important;
+}
 
 /* Active nav item in light mode */
 [data-theme="light"] .bg-blue-600 {
@@ -259,7 +378,14 @@
 /* Gray transparency variants */
 [data-theme="light"] .bg-gray-700\/20 { background-color: rgba(241, 245, 249, 0.6) !important; }
 [data-theme="light"] .border-gray-700\/50 { border-color: rgba(226, 232, 240, 0.7) !important; }
-[data-theme="light"] .bg-gray-600\/50 { background-color: rgba(203, 213, 225, 0.5) !important; }
+
+/* ── Icon circles / avatar (bg-gray-700, bg-gray-800 used for icon bg) ── */
+/* Pastikan icon bg di light mode tidak gelap */
+[data-theme="light"] .rounded-full.bg-gray-700 { background-color: #e2e8f0 !important; }
+[data-theme="light"] .rounded-full.bg-gray-800 { background-color: #f1f5f9 !important; }
+[data-theme="light"] .rounded-xl.bg-gray-800  { background-color: #f1f5f9 !important; }
+[data-theme="light"] .rounded-lg.bg-gray-800  { background-color: #f1f5f9 !important; }
+[data-theme="light"] .rounded-lg.bg-gray-700  { background-color: #e2e8f0 !important; }
 
 /* Colored status badges */
 [data-theme="light"] .text-red-300 { color: #ef4444 !important; }
@@ -273,6 +399,45 @@
 [data-theme="light"] .bg-blue-600\/20 { background-color: rgba(37, 99, 235, 0.1) !important; }
 [data-theme="light"] .hover\:bg-blue-600\/30:hover { background-color: rgba(37, 99, 235, 0.15) !important; }
 [data-theme="light"] .border-blue-600\/30 { border-color: rgba(37, 99, 235, 0.2) !important; }
+
+/* ── Specific: TrackingHistoryPage icons circle ── */
+/* bg-gray-700/60 icon container — sudah ada di atas */
+[data-theme="light"] .border-gray-600\/50 { border-color: rgba(203, 213, 225, 0.6) !important; }
+
+/* ── ProfilePage, SettingsPage — readonly input ── */
+[data-theme="light"] .bg-gray-800\/50 { background-color: rgba(248, 250, 252, 0.9) !important; }
+[data-theme="light"] .border-gray-700 { border-color: #e2e8f0 !important; }
+
+/* ── Stat cards with from-X-900 backgrounds ── */
+[data-theme="light"] .from-blue-900\/30 { --tw-gradient-from: rgba(219, 234, 254, 0.4) !important; }
+[data-theme="light"] .to-blue-800\/20   { --tw-gradient-to: rgba(191, 219, 254, 0.3) !important; }
+[data-theme="light"] .border-blue-700\/30 { border-color: rgba(147, 197, 253, 0.4) !important; }
+
+/* ── AdminDashboard / PetugasDashboard header buttons ── */
+[data-theme="light"] button.bg-gray-700 {
+  background-color: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+  color: #475569 !important;
+}
+[data-theme="light"] button.bg-gray-700:hover {
+  background-color: #e2e8f0 !important;
+}
+[data-theme="light"] button.bg-gray-800 {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #475569 !important;
+}
+
+/* ── ConfirmModal dark background fix ── */
+[data-theme="light"] .bg-gray-900.rounded-2xl,
+[data-theme="light"] .bg-gray-900.rounded-xl {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* ── border-t/b separator lines ── */
+[data-theme="light"] .border-t.border-gray-700\/50 { border-color: rgba(226,232,240,0.7) !important; }
+[data-theme="light"] .border-b.border-gray-700 { border-color: #e2e8f0 !important; }
 
 /* ====================================================
    LEAFLET MAP - BASE STYLES

@@ -7,10 +7,7 @@ import {
   Sun,
   Moon,
   Type,
-  MapPin,
-  Bell,
   Wifi,
-  Battery,
   Monitor,
   CheckCircle,
 } from "lucide-react";
@@ -36,16 +33,10 @@ const SettingsPage = () => {
 
   // ── State pengaturan ─────────────────────────────────────────
   const [fontSize, setFontSize] = useState(saved.fontSize ?? "normal");
-  const [mapQuality, setMapQuality] = useState(saved.mapQuality ?? "normal");
-  const [gpsInterval, setGpsInterval] = useState(saved.gpsInterval ?? 5);
-  const [autoSaveTrack, setAutoSaveTrack] = useState(
-    saved.autoSaveTrack ?? true,
-  );
-  const [vibrasi, setVibrasi] = useState(saved.vibrasi ?? true);
   const [savedToast, setSavedToast] = useState(false);
 
   const handleSave = () => {
-    saveSettings({ fontSize, mapQuality, gpsInterval, autoSaveTrack, vibrasi });
+    saveSettings({ fontSize });
     // Terapkan font size ke root
     const sizeMap = { kecil: "13px", normal: "15px", besar: "17px" };
     document.documentElement.style.fontSize = sizeMap[fontSize];
@@ -199,111 +190,6 @@ const SettingsPage = () => {
           </div>
         </div>
 
-        {/* ── Peta & GPS ── */}
-        <div className={`rounded-2xl border ${cardBg} overflow-hidden`}>
-          <SectionHeader
-            icon={MapPin}
-            title="Peta & GPS"
-            desc="Kualitas peta dan frekuensi lokasi"
-            color="#22c55e"
-          />
-          <div className="px-5">
-            {/* Kualitas peta */}
-            <RowItem
-              label="Kualitas Peta"
-              desc="Resolusi lebih tinggi butuh lebih banyak data"
-            >
-              <ChipGroup
-                value={mapQuality}
-                onChange={setMapQuality}
-                options={[
-                  { value: "hemat", label: "Hemat" },
-                  { value: "normal", label: "Normal" },
-                  { value: "tinggi", label: "Tinggi" },
-                ]}
-              />
-            </RowItem>
-
-            {/* Interval GPS */}
-            <RowItem
-              label="Interval GPS"
-              desc="Seberapa sering posisi diperbarui saat tracking"
-            >
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setGpsInterval((v) => Math.max(2, v - 1))}
-                  className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-lg transition-colors ${
-                    isDark
-                      ? "bg-gray-700 hover:bg-gray-600 text-gray-200"
-                      : "bg-gray-200 hover:bg-gray-300 text-gray-700"
-                  }`}
-                >
-                  −
-                </button>
-                <span
-                  className={`text-sm font-bold w-14 text-center ${textColor}`}
-                >
-                  {gpsInterval}s
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setGpsInterval((v) => Math.min(30, v + 1))}
-                  className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-lg transition-colors ${
-                    isDark
-                      ? "bg-gray-700 hover:bg-gray-600 text-gray-200"
-                      : "bg-gray-200 hover:bg-gray-300 text-gray-700"
-                  }`}
-                >
-                  +
-                </button>
-              </div>
-            </RowItem>
-            {/* Rekomendasi interval */}
-            <div
-              className={`mb-3 px-3 py-2 rounded-xl text-xs ${
-                isDark
-                  ? "bg-blue-500/10 text-blue-300 border border-blue-500/20"
-                  : "bg-blue-50 text-blue-600 border border-blue-100"
-              }`}
-            >
-              💡 Rekomendasian: <strong>5 detik</strong> — keseimbangan terbaik
-              antara akurasi rute dan hemat baterai di lapangan.
-            </div>
-
-            {/* Auto-save track */}
-            <RowItem
-              label="Simpan Rute Otomatis"
-              desc="Rute tersimpan meski aplikasi ditutup mendadak"
-            >
-              <ToggleSwitch
-                enabled={autoSaveTrack}
-                onToggle={() => setAutoSaveTrack((v) => !v)}
-              />
-            </RowItem>
-          </div>
-        </div>
-
-        {/* ── Notifikasi & Feedback ── */}
-        <div className={`rounded-2xl border ${cardBg} overflow-hidden`}>
-          <SectionHeader
-            icon={Bell}
-            title="Notifikasi & Umpan Balik"
-            desc="Getaran dan sinyal saat deteksi kerusakan"
-            color="#f59e0b"
-          />
-          <div className="px-5">
-            <RowItem
-              label="Getaran Saat Deteksi"
-              desc="Haptic feedback saat kerusakan jalan terdeteksi"
-            >
-              <ToggleSwitch
-                enabled={vibrasi}
-                onToggle={() => setVibrasi((v) => !v)}
-              />
-            </RowItem>
-          </div>
-        </div>
 
         {/* ── Info ── */}
         <div className={`rounded-2xl border ${cardBg} overflow-hidden`}>

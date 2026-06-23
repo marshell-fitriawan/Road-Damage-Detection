@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
+import { useToast } from "../contexts/ToastContext";
 import {
   ArrowLeft,
   User,
@@ -20,6 +21,7 @@ const ProfilePage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isDark } = useTheme();
+  const toast = useToast();
 
   // Form ganti password
   const [passwordForm, setPasswordForm] = useState({
@@ -59,29 +61,22 @@ const ProfilePage = () => {
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     if (passwordForm.new !== passwordForm.confirm) {
-      setPasswordStatus("error");
-      setPasswordMsg("Password baru dan konfirmasi tidak cocok.");
+      toast.error("Password baru dan konfirmasi tidak cocok.");
       return;
     }
     if (passwordForm.new.length < 8) {
-      setPasswordStatus("error");
-      setPasswordMsg("Password baru minimal 8 karakter.");
+      toast.error("Password baru minimal 8 karakter.");
       return;
     }
     setPasswordLoading(true);
-    setPasswordStatus(null);
     try {
       // TODO: ganti dengan API call
       // await authService.changePassword({ current_password: passwordForm.current, new_password: passwordForm.new });
       await new Promise((r) => setTimeout(r, 800)); // simulasi
-      setPasswordStatus("success");
-      setPasswordMsg("Password berhasil diperbarui.");
+      toast.success("Password berhasil diperbarui.");
       setPasswordForm({ current: "", new: "", confirm: "" });
     } catch (err) {
-      setPasswordStatus("error");
-      setPasswordMsg(
-        err?.response?.data?.message || "Gagal memperbarui password.",
-      );
+      toast.error(err?.response?.data?.message || "Gagal memperbarui password.");
     } finally {
       setPasswordLoading(false);
     }
@@ -90,14 +85,13 @@ const ProfilePage = () => {
   const handlePhoneSubmit = async (e) => {
     e.preventDefault();
     setPhoneLoading(true);
-    setPhoneStatus(null);
     try {
       // TODO: ganti dengan API call
       // await userService.updatePhone({ phone });
       await new Promise((r) => setTimeout(r, 600)); // simulasi
-      setPhoneStatus("success");
+      toast.success("Nomor HP berhasil disimpan.");
     } catch {
-      setPhoneStatus("error");
+      toast.error("Gagal menyimpan nomor HP.");
     } finally {
       setPhoneLoading(false);
     }

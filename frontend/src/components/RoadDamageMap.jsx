@@ -2,6 +2,9 @@ import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Popup, Polyline, Marker, Tooltip, GeoJSON, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
+import 'leaflet.markercluster';
 
 /* ── Custom tooltip untuk nama petugas di garis rute ── */
 const ROUTE_TOOLTIP_STYLE = `
@@ -592,6 +595,229 @@ const MapModeClass = ({ mapMode }) => {
   return null;
 };
 
+// ============ USER LOCATION MARKER ============
+// CSS animasi pulsing dot — inject sekali saja
+if (typeof document !== 'undefined' && !document.getElementById('user-loc-style')) {
+  const s = document.createElement('style');
+  s.id = 'user-loc-style';
+  s.textContent = `
+    @keyframes userLocPulse {
+      0%   { transform: scale(1);   opacity: 1; }
+      50%  { transform: scale(1.6); opacity: 0.35; }
+      100% { transform: scale(1);   opacity: 1; }
+    }
+    @keyframes userLocRing {
+      0%   { transform: scale(0.8); opacity: 0.8; }
+      100% { transform: scale(2.2); opacity: 0; }
+    }
+    .user-loc-icon { background: transparent !important; border: none !important; }
+  `;
+  document.head.appendChild(s);
+}
+
+// Ikon pulsing blue dot
+const createUserLocationIcon = () => L.divIcon({
+  className: 'user-loc-icon',
+  html: `
+    <div style="position:relative;width:36px;height:36px;">
+      <!-- Ring animasi luar -->
+      <div style="
+        position:absolute;top:0;left:0;right:0;bottom:0;
+        border-radius:50%;
+        background:rgba(59,130,246,0.25);
+        animation:userLocRing 1.8s ease-out infinite;
+      "></div>
+      <!-- Dot utama -->
+      <div style="
+        position:absolute;top:50%;left:50%;
+        transform:translate(-50%,-50%);
+        width:16px;height:16px;
+        background:#3b82f6;
+        border:3px solid white;
+        border-radius:50%;
+        box-shadow:0 0 0 2px rgba(59,130,246,0.5), 0 2px 8px rgba(0,0,0,0.5);
+        animation:userLocPulse 2s ease-in-out infinite;
+      "></div>
+    </div>
+  `,
+  iconSize: [36, 36],
+  iconAnchor: [18, 18],
+  popupAnchor: [0, -18],
+});
+
+// ============ DAMAGE CLUSTER LAYER ============
+// Menggunakan leaflet.markercluster native untuk clustering marker kerusakan
+const DamageClusterLayer = ({ markers, getDamageColor, getSeveritySize, theme }) => {
+  const map = useMap();
+  const clusterRef = useRef(null);
+
+  useEffect(() => {
+    if (!map || !markers || markers.length === 0) return;
+
+    // Hapus cluster group lama
+    if (clusterRef.current) {
+      map.removeLayer(clusterRef.current);
+    }
+
+    // Buat cluster group baru
+    const cluster = L.markerClusterGroup({
+      maxClusterRadius: 50,
+      spiderfyOnMaxZoom: true,
+      showCoverageOnHover: false,
+      zoomToBoundsOnClick: true,
+      disableClusteringAtZoom: 15,
+      iconCreateFunction: (c) => {
+        const count = c.getChildCount();
+        const size = count > 50 ? 48 : count > 20 ? 42 : count > 10 ? 36 : 30;
+        const bg = count > 50 ? '#dc2626' : count > 20 ? '#d97706' : count > 10 ? '#2563eb' : '#16a34a';
+        return L.divIcon({
+          html: `<div style="
+            width:${size}px;height:${size}px;
+            background:${bg};
+            border:2.5px solid white;
+            border-radius:50%;
+            display:flex;align-items:center;justify-content:center;
+            color:white;font-weight:bold;font-size:${size > 40 ? 14 : 12}px;
+            box-shadow:0 2px 10px rgba(0,0,0,0.4);
+          ">${count}</div>`,
+          className: '',
+          iconSize: [size, size],
+          iconAnchor: [size / 2, size / 2],
+        });
+      },
+    });
+
+    // Tambahkan marker ke cluster
+    markers.forEach((marker) => {
+      if (!marker.lat || !marker.lng) return;
+      const color = getDamageColor(marker.type);
+      const radius = getSeveritySize(marker.severity);
+      const icon = L.divIcon({
+        html: `<div style="
+          width:${radius * 2 + 4}px;height:${radius * 2 + 4}px;
+          background:${color};
+          border:2px solid white;
+          border-radius:50%;
+          box-shadow:0 1px 6px rgba(0,0,0,0.5);
+          opacity:${theme.markerFillOpacity};
+        "></div>`,
+        className: '',
+        iconSize: [radius * 2 + 4, radius * 2 + 4],
+        iconAnchor: [radius + 2, radius + 2],
+      });
+
+      const m = L.marker([marker.lat, marker.lng], { icon });
+      const severityColor = marker.severity === 'high' ? '#dc2626' : marker.severity === 'medium' ? '#d97706' : '#16a34a';
+      const statusColor   = marker.status === 'repaired' ? '#16a34a' : marker.status === 'verified' ? '#2563eb' : '#d97706';
+
+      m.bindPopup(`
+        <div style="font-family:sans-serif;min-width:220px;padding:4px">
+          ${marker.image_url ? `<div style="margin:-8px -8px 10px"><img src="${marker.image_url}" style="width:100%;height:130px;object-fit:cover;border-radius:6px 6px 0 0;display:block"/></div>` : ''}
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <h3 style="margin:0;color:${color};font-weight:bold;font-size:14px">${marker.type}</h3>
+            <span style="padding:2px 8px;border-radius:12px;font-size:11px;font-weight:bold;background:${severityColor};color:white">${(marker.severity || '').toUpperCase()}</span>
+          </div>
+          <div style="font-size:12px;line-height:2">
+            <div style="display:flex;justify-content:space-between">
+              <span style="color:#6b7280">Status</span>
+              <span style="padding:1px 8px;border-radius:10px;font-size:11px;font-weight:bold;background:${statusColor};color:white">${(marker.status || '').toUpperCase()}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between">
+              <span style="color:#6b7280">Confidence</span>
+              <span style="font-weight:600;color:${color}">${(marker.confidence * 100).toFixed(1)}%</span>
+            </div>
+            ${marker.officer ? `<div style="display:flex;justify-content:space-between"><span style="color:#6b7280">Petugas</span><span style="font-weight:600">${marker.officer}</span></div>` : ''}
+          </div>
+          <a href="https://www.google.com/maps/search/?api=1&query=${marker.lat.toFixed(8)},${marker.lng.toFixed(8)}" target="_blank" style="display:block;margin-top:8px;text-align:center;padding:5px;background:#2563eb;color:white;border-radius:6px;font-size:11px;font-weight:600;text-decoration:none">🗺 Buka di Google Maps</a>
+        </div>
+      `, { maxWidth: 280, minWidth: 240 });
+
+      cluster.addLayer(m);
+    });
+
+    cluster.addTo(map);
+    clusterRef.current = cluster;
+
+    return () => {
+      if (clusterRef.current) {
+        map.removeLayer(clusterRef.current);
+        clusterRef.current = null;
+      }
+    };
+  }, [map, markers, theme]);
+
+  return null;
+};
+
+// Sub-komponen: fly ke user saat pertama kali dapat lokasi
+const FlyToUser = ({ position }) => {
+  const map = useMap();
+  const flewRef = useRef(false);
+  useEffect(() => {
+    if (position && !flewRef.current) {
+      flewRef.current = true;
+      map.flyTo([position.lat, position.lng], 15, { duration: 1.5 });
+    }
+  }, [position, map]);
+  return null;
+};
+
+// Komponen utama marker lokasi user
+const UserLocationMarker = ({ position, accuracy }) => {
+  const userLocIcon = useMemo(() => createUserLocationIcon(), []);
+  if (!position) return null;
+  return (
+    <React.Fragment>
+      {/* Lingkaran akurasi GPS */}
+      {accuracy && accuracy < 500 && (
+        <CircleMarker
+          center={[position.lat, position.lng]}
+          radius={Math.min(accuracy / 3, 60)}
+          fillColor="#3b82f6"
+          fillOpacity={0.08}
+          color="#3b82f6"
+          weight={1}
+          opacity={0.4}
+          interactive={false}
+        />
+      )}
+      {/* Marker titik lokasi */}
+      <Marker position={[position.lat, position.lng]} icon={userLocIcon}>
+        <Popup maxWidth={220}>
+          <div style={{ fontFamily: 'sans-serif', padding: '4px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+              <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#3b82f6', flexShrink: 0 }} />
+              <span style={{ fontWeight: 'bold', fontSize: '13px', color: '#1d4ed8' }}>Lokasi Saya</span>
+            </div>
+            <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>📍 Koordinat GPS</div>
+            <div style={{ fontFamily: 'monospace', fontSize: '12px', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>
+              {position.lat.toFixed(6)}, {position.lng.toFixed(6)}
+            </div>
+            {accuracy && (
+              <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '8px' }}>
+                Akurasi: ±{Math.round(accuracy)} meter
+              </div>
+            )}
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${position.lat.toFixed(7)},${position.lng.toFixed(7)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'block', textAlign: 'center', padding: '5px 8px',
+                background: '#2563eb', color: 'white', borderRadius: '6px',
+                fontSize: '11px', fontWeight: '600', textDecoration: 'none',
+              }}
+            >
+              🗺 Buka di Google Maps
+            </a>
+          </div>
+        </Popup>
+      </Marker>
+      <FlyToUser position={position} />
+    </React.Fragment>
+  );
+};
+
 // ============ KOMPONEN UTAMA PETA ============
 const RoadDamageMap = ({
   markers = [],
@@ -602,6 +828,7 @@ const RoadDamageMap = ({
   selectedRuas = null,
   onRuasListLoaded,
   filters = {},
+  userLocation = null,   // { lat, lng, accuracy }
 }) => {
   const petugasColors = ['#3b82f6', '#ef4444', '#22c55e', '#eab308', '#8b5cf6', '#f97316', '#ec4899'];
   const theme = THEMES[mapMode] || THEMES.dark;
@@ -676,6 +903,15 @@ const RoadDamageMap = ({
       maxZoom={MAX_ZOOM}
       className={`h-full w-full map-${mapMode}`}
       style={{ minHeight: '500px', height: '100%' }}
+      // ── Optimasi performa ─────────────────────────────────────────
+      // Canvas rendering jauh lebih cepat dari SVG untuk banyak marker
+      preferCanvas={true}
+      // Kurangi animasi zoom agar tidak terasa berat
+      zoomAnimation={true}
+      zoomAnimationThreshold={4}
+      // Jangan re-render saat masih drag (hemat CPU)
+      updateWhenIdle={false}
+      updateWhenZooming={false}
     >
       {/* Set CSS class on map container */}
       <MapModeClass mapMode={mapMode} />
@@ -696,6 +932,9 @@ const RoadDamageMap = ({
         url={tile.url}
         subdomains={tile.subdomains}
         maxZoom={MAX_ZOOM}
+        keepBuffer={4}
+        updateWhenIdle={true}
+        updateWhenZooming={false}
       />
 
       {/* Jaringan Jalan Kubu Raya */}
@@ -1110,123 +1349,21 @@ const RoadDamageMap = ({
         );
       })}
 
-      {/* ====== MARKER KERUSAKAN TERSIMPAN ====== */}
-      {markers.map((marker) => (
-        <CircleMarker
-          key={`dmg-${marker.id}`}
-          center={[marker.lat, marker.lng]}
-          radius={getSeveritySize(marker.severity)}
-          fillColor={getDamageColor(marker.type)}
-          color={theme.markerBorder}
-          weight={2}
-          opacity={theme.markerOpacity}
-          fillOpacity={theme.markerFillOpacity}
-        >
-          <Popup maxWidth={280} minWidth={260}>
-            <div style={{ fontFamily: 'sans-serif', padding: '2px' }}>
-              {/* Gambar kerusakan */}
-              {marker.image_url && (
-                <div style={{ margin: '-8px -8px 10px -8px' }}>
-                  <img
-                    src={marker.image_url}
-                    alt={marker.type}
-                    style={{ width: '100%', height: '160px', objectFit: 'cover', borderRadius: '6px 6px 0 0', display: 'block' }}
-                  />
-                </div>
-              )}
+      {/* ====== LOKASI USER (Saya) ====== */}
+      {userLocation && (
+        <UserLocationMarker
+          position={{ lat: userLocation.lat, lng: userLocation.lng }}
+          accuracy={userLocation.accuracy}
+        />
+      )}
 
-              {/* Header jenis kerusakan */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <h3 style={{ margin: 0, color: getDamageColor(marker.type), fontWeight: 'bold', fontSize: '15px' }}>
-                  {marker.type}
-                </h3>
-                <span style={{
-                  padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold',
-                  background: marker.severity === 'high' ? '#dc2626' : marker.severity === 'medium' ? '#d97706' : '#16a34a',
-                  color: 'white',
-                }}>
-                  {marker.severity?.toUpperCase()}
-                </span>
-              </div>
-
-              {/* Info grid */}
-              <div style={{ fontSize: '12px', color: '#374151', lineHeight: '1.8' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e5e7eb', paddingBottom: '4px', marginBottom: '4px' }}>
-                  <span style={{ color: '#6b7280' }}>Status</span>
-                  <span style={{
-                    padding: '1px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: 'bold',
-                    background: marker.status === 'repaired' ? '#16a34a' : marker.status === 'verified' ? '#2563eb' : '#d97706',
-                    color: 'white',
-                  }}>
-                    {marker.status?.toUpperCase()}
-                  </span>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#6b7280' }}>Confidence</span>
-                  <span style={{ fontWeight: '600', color: getDamageColor(marker.type) }}>
-                    {(marker.confidence * 100).toFixed(1)}%
-                  </span>
-                </div>
-
-                {marker.area_cm2 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#6b7280' }}>Luas</span>
-                    <span style={{ fontWeight: '600' }}>{marker.area_cm2.toFixed(1)} cm²</span>
-                  </div>
-                )}
-
-                {marker.petugas_name && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#6b7280' }}>Petugas</span>
-                    <span style={{ fontWeight: '600' }}>{marker.petugas_name}</span>
-                  </div>
-                )}
-
-                {marker.ruas_jalan && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#6b7280' }}>Ruas Jalan</span>
-                    <span style={{ fontWeight: '600', fontSize: '11px', maxWidth: '150px', textAlign: 'right' }}>{marker.ruas_jalan}</span>
-                  </div>
-                )}
-
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#6b7280' }}>Waktu</span>
-                  <span style={{ fontWeight: '600', fontSize: '11px' }}>
-                    {new Date(marker.created_at).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                </div>
-
-                {/* Koordinat - bisa dikopi */}
-                <div style={{ marginTop: '6px', padding: '6px 8px', background: '#f3f4f6', borderRadius: '6px', cursor: 'pointer' }}
-                  onClick={() => navigator.clipboard?.writeText(`${marker.lat.toFixed(7)}, ${marker.lng.toFixed(7)}`)}
-                  title="Klik untuk salin koordinat"
-                >
-                  <div style={{ color: '#6b7280', fontSize: '10px', marginBottom: '2px' }}>📍 Koordinat (klik untuk salin)</div>
-                  <div style={{ fontFamily: 'monospace', fontSize: '11px', fontWeight: '600', color: '#1f2937' }}>
-                    {marker.lat.toFixed(7)}, {marker.lng.toFixed(7)}
-                  </div>
-                </div>
-
-                {/* Link Google Maps */}
-                <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${marker.lat.toFixed(8)},${marker.lng.toFixed(8)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: 'block', marginTop: '8px', textAlign: 'center',
-                    padding: '5px', background: '#2563eb', color: 'white',
-                    borderRadius: '6px', fontSize: '11px', fontWeight: '600',
-                    textDecoration: 'none',
-                  }}
-                >
-                  🗺 Buka di Google Maps
-                </a>
-              </div>
-            </div>
-          </Popup>
-        </CircleMarker>
-      ))}
+      {/* ====== MARKER KERUSAKAN TERSIMPAN (dengan clustering) ====== */}
+      <DamageClusterLayer
+        markers={markers}
+        getDamageColor={getDamageColor}
+        getSeveritySize={getSeveritySize}
+        theme={theme}
+      />
     </MapContainer>
   );
 };

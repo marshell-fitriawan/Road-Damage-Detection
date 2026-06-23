@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { userService } from "../services/api";
+import { useToast } from "../contexts/ToastContext";
+import { useTheme } from "../contexts/ThemeContext";
+import ConfirmModal from "../components/ConfirmModal";
 import {
   UserPlus,
   Edit,
@@ -7,13 +10,171 @@ import {
   ToggleRight,
   Search,
   X,
+  Eye,
+  User,
+  Mail,
+  Shield,
+  Activity,
+  MapPin,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
+// ─── Detail Panel Profil Petugas ─────────────────────────────────────────────
+const UserDetailPanel = ({ user, onClose }) => {
+  const { isDark } = useTheme();
+  if (!user) return null;
+
+  const joinDate = user.created_at
+    ? new Date(user.created_at).toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : "—";
+
+  const lastActive = user.updated_at
+    ? new Date(user.updated_at).toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : "—";
+
+  const modalBg   = isDark ? "bg-[#1a2035] border-gray-700"   : "bg-white border-gray-200";
+  const hdrBg     = isDark ? "from-gray-800 to-blue-900/60 border-gray-700" : "from-white to-blue-50 border-gray-200";
+  const hdrTitle  = isDark ? "text-white"   : "text-gray-900";
+  const closeCls  = isDark ? "bg-gray-700/60 hover:bg-gray-600 text-gray-400 hover:text-white" : "bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-900";
+  const sectionBorder = isDark ? "border-gray-800" : "border-gray-100";
+  const rowBg     = isDark ? "bg-gray-800/60 border-gray-700/50" : "bg-gray-50 border-gray-200";
+  const labelCls  = isDark ? "text-gray-500" : "text-gray-400";
+  const valCls    = isDark ? "text-white"    : "text-gray-900";
+  const statusCls = isDark ? "text-gray-400" : "text-gray-500";
+  const footerBtn = isDark ? "bg-gray-700 hover:bg-gray-600 text-gray-200" : "bg-gray-100 hover:bg-gray-200 text-gray-700";
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/55 backdrop-blur-sm flex items-center justify-center z-[800] p-4"
+      onClick={onClose}
+    >
+      <div
+        className={`border rounded-2xl shadow-2xl w-full max-w-md overflow-hidden ${modalBg}`}
+        style={{ animation: "slideUpFade 0.25s ease-out" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className={`bg-gradient-to-r ${hdrBg} px-6 py-5 flex items-center justify-between border-b`}>
+          <h2 className={`text-lg font-bold ${hdrTitle}`}>Detail Pengguna</h2>
+          <button
+            onClick={onClose}
+            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${closeCls}`}
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Avatar + nama */}
+        <div className={`px-6 py-6 flex flex-col items-center text-center border-b ${sectionBorder}`}>
+          <div
+            className={`w-20 h-20 rounded-full flex items-center justify-center font-bold text-white text-3xl mb-3 ${
+              user.role === "admin" ? "bg-primary" : "bg-blue-600"
+            }`}
+          >
+            {user.name.charAt(0).toUpperCase()}
+          </div>
+          <h3 className={`text-xl font-bold ${hdrTitle}`}>{user.name}</h3>
+          <span
+            className={`mt-2 px-3 py-1 rounded-full text-xs font-semibold ${
+              user.role === "admin"
+                ? "bg-primary/20 text-primary border border-primary/30"
+                : "bg-blue-600/20 text-blue-500 border border-blue-600/30"
+            }`}
+          >
+            {user.role === "admin" ? "Administrator" : "Petugas Lapangan"}
+          </span>
+          <div className="mt-2">
+            <span
+              className={`inline-block w-2 h-2 rounded-full mr-1.5 ${
+                user.is_active ? "bg-green-500" : "bg-gray-400"
+              }`}
+            />
+            <span className={`text-xs ${statusCls}`}>
+              {user.is_active ? "Aktif" : "Nonaktif"}
+            </span>
+          </div>
+        </div>
+
+        {/* Info Grid */}
+        <div className="px-6 py-5 space-y-3">
+          <div className={`flex items-center gap-3 rounded-xl p-3 border ${rowBg}`}>
+            <Mail className="w-4 h-4 text-blue-400 flex-shrink-0" />
+            <div className="min-w-0">
+              <p className={`text-[10px] uppercase tracking-wide ${labelCls}`}>Email</p>
+              <p className={`text-sm truncate ${valCls}`}>{user.email}</p>
+            </div>
+          </div>
+
+          <div className={`flex items-center gap-3 rounded-xl p-3 border ${rowBg}`}>
+            <Shield className="w-4 h-4 text-purple-400 flex-shrink-0" />
+            <div>
+              <p className={`text-[10px] uppercase tracking-wide ${labelCls}`}>Peran</p>
+              <p className={`text-sm capitalize ${valCls}`}>
+                {user.role === "admin" ? "Administrator" : "Petugas Lapangan"}
+              </p>
+            </div>
+          </div>
+
+          <div className={`flex items-center gap-3 rounded-xl p-3 border ${rowBg}`}>
+            <Activity className="w-4 h-4 text-green-400 flex-shrink-0" />
+            <div>
+              <p className={`text-[10px] uppercase tracking-wide ${labelCls}`}>Total Tracking</p>
+              <p className={`text-sm ${valCls}`}>
+                {user.tracking_sessions_count || 0} sesi
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className={`flex items-center gap-2 rounded-xl p-3 border ${rowBg}`}>
+              <Calendar className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className={`text-[10px] uppercase tracking-wide ${labelCls}`}>Bergabung</p>
+                <p className={`text-xs ${valCls}`}>{joinDate}</p>
+              </div>
+            </div>
+            <div className={`flex items-center gap-2 rounded-xl p-3 border ${rowBg}`}>
+              <MapPin className="w-4 h-4 text-red-400 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className={`text-[10px] uppercase tracking-wide ${labelCls}`}>Terakhir Aktif</p>
+                <p className={`text-xs ${valCls}`}>{lastActive}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 pb-5">
+          <button
+            onClick={onClose}
+            className={`w-full py-2.5 rounded-xl text-sm font-medium transition-colors ${footerBtn}`}
+          >
+            Tutup
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 const UserManagementPage = () => {
+  const toast = useToast();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [viewingUser, setViewingUser] = useState(null); // untuk detail panel
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [formData, setFormData] = useState({
@@ -25,6 +186,7 @@ const UserManagementPage = () => {
   const [formError, setFormError] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [toggleConfirm, setToggleConfirm] = useState({ open: false, userId: null, isActive: false });
 
   useEffect(() => {
     loadUsers();
@@ -55,17 +217,19 @@ const UserManagementPage = () => {
         const updateData = { ...formData };
         if (!updateData.password) delete updateData.password;
         await userService.update(editingUser.id, updateData);
+        toast.success(`Akun "${formData.name}" berhasil diperbarui.`);
       } else {
         await userService.create(formData);
+        toast.success(`Akun "${formData.name}" berhasil dibuat.`);
       }
       setShowForm(false);
       setEditingUser(null);
       setFormData({ name: "", email: "", password: "", role: "petugas" });
       loadUsers();
     } catch (error) {
-      setFormError(
-        error.response?.data?.message || "Gagal menyimpan data pengguna.",
-      );
+      const msg = error.response?.data?.message || "Gagal menyimpan data pengguna.";
+      setFormError(msg);
+      toast.error(msg);
     }
   };
 
@@ -78,14 +242,40 @@ const UserManagementPage = () => {
       role: user.role,
     });
     setShowForm(true);
+    setViewingUser(null);
   };
 
-  const handleToggleActive = async (userId) => {
+  const handleToggleActive = async () => {
+    const { userId, isActive } = toggleConfirm;
+    setToggleConfirm({ open: false, userId: null, isActive: false });
     try {
       await userService.toggleActive(userId);
+      toast.success(isActive ? "Pengguna berhasil dinonaktifkan." : "Pengguna berhasil diaktifkan.");
       loadUsers();
     } catch (error) {
       console.error("Error toggling user:", error);
+      toast.error("Gagal mengubah status pengguna.");
+    }
+  };
+
+  // State untuk konfirmasi tutup form jika ada perubahan
+  const [cancelConfirm, setCancelConfirm] = useState(false);
+
+  const isDirtyForm = () => {
+    if (editingUser) {
+      return formData.name !== editingUser.name ||
+             formData.email !== editingUser.email ||
+             formData.password !== "" ||
+             formData.role !== editingUser.role;
+    }
+    return formData.name !== "" || formData.email !== "" || formData.password !== "";
+  };
+
+  const handleCancelForm = () => {
+    if (isDirtyForm()) {
+      setCancelConfirm(true);
+    } else {
+      cancelForm();
     }
   };
 
@@ -94,21 +284,24 @@ const UserManagementPage = () => {
     setEditingUser(null);
     setFormData({ name: "", email: "", password: "", role: "petugas" });
     setFormError("");
+    setCancelConfirm(false);
   };
 
   return (
-    <div className="bg-gray-900">
+    <div>
       <div className="overflow-auto p-4 lg:p-8">
-        <div className="max-w-7xl mx-auto space-y-6">
+        <div className="space-y-6">
+
+          {/* Header */}
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-primary">
-              Kelola Akun Pengguna
-            </h1>
+            <div>
+              <h1 className="text-3xl font-bold text-primary">Kelola Akun Pengguna</h1>
+              <p className="text-sm text-gray-400 mt-1">
+                Kelola dan pantau semua pengguna sistem
+              </p>
+            </div>
             <button
-              onClick={() => {
-                cancelForm();
-                setShowForm(true);
-              }}
+              onClick={() => { cancelForm(); setShowForm(true); }}
               className="btn-primary flex items-center gap-2"
             >
               <UserPlus className="w-5 h-5" />
@@ -149,15 +342,12 @@ const UserManagementPage = () => {
 
           {/* Add/Edit Form */}
           {showForm && (
-            <div className="card border-primary">
+            <div className="card border-primary" style={{ animation: "slideDownFade 0.2s ease-out" }}>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold">
                   {editingUser ? "Edit Pengguna" : "Tambah Pengguna Baru"}
                 </h2>
-                <button
-                  onClick={cancelForm}
-                  className="text-gray-400 hover:text-white"
-                >
+                <button onClick={handleCancelForm} className="text-gray-400 hover:text-white transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -168,34 +358,23 @@ const UserManagementPage = () => {
                 </div>
               )}
 
-              <form
-                onSubmit={handleSubmit}
-                className="grid grid-cols-1 md:grid-cols-2 gap-4"
-              >
+              <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Nama
-                  </label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Nama</label>
                   <input
                     type="text"
                     value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="input-field"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Email
-                  </label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
                   <input
                     type="email"
                     value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className="input-field"
                     required
                   />
@@ -207,23 +386,17 @@ const UserManagementPage = () => {
                   <input
                     type="password"
                     value={formData.password}
-                    onChange={(e) =>
-                      setFormData({ ...formData, password: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     className="input-field"
                     {...(!editingUser && { required: true })}
                     minLength={8}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Peran
-                  </label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Peran</label>
                   <select
                     value={formData.role}
-                    onChange={(e) =>
-                      setFormData({ ...formData, role: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                     className="input-field"
                   >
                     <option value="petugas">Petugas Lapangan</option>
@@ -234,11 +407,7 @@ const UserManagementPage = () => {
                   <button type="submit" className="btn-primary">
                     {editingUser ? "Simpan Perubahan" : "Buat Akun"}
                   </button>
-                  <button
-                    type="button"
-                    onClick={cancelForm}
-                    className="btn-secondary"
-                  >
+                  <button type="button" onClick={handleCancelForm} className="btn-secondary">
                     Batal
                   </button>
                 </div>
@@ -249,31 +418,63 @@ const UserManagementPage = () => {
           {/* Users List */}
           {loading ? (
             <div className="flex items-center justify-center h-32">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+            </div>
+          ) : users.length === 0 ? (
+            <div className="card text-center py-14">
+              <div className="w-16 h-16 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center mx-auto mb-4">
+                <User className="w-8 h-8 text-gray-500" />
+              </div>
+              <p className="text-gray-300 font-semibold text-lg">
+                {searchTerm ? "Pengguna tidak ditemukan" : "Belum ada pengguna"}
+              </p>
+              <p className="text-gray-500 text-sm mt-1 mb-4">
+                {searchTerm
+                  ? `Tidak ada pengguna yang cocok dengan "${searchTerm}"`
+                  : "Tambah akun petugas atau admin untuk mulai menggunakan sistem"}
+              </p>
+              {searchTerm ? (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="px-4 py-2 bg-blue-600/20 border border-blue-600/40 text-blue-400 rounded-lg text-sm hover:bg-blue-600/30 transition-colors"
+                >
+                  Hapus Pencarian
+                </button>
+              ) : (
+                <button
+                  onClick={() => setShowForm(true)}
+                  className="px-4 py-2 bg-primary/20 border border-primary/40 text-primary rounded-lg text-sm hover:bg-primary/30 transition-colors"
+                >
+                  + Tambah Pengguna Pertama
+                </button>
+              )}
             </div>
           ) : (
             <div className="space-y-3">
               {users.map((user) => (
                 <div
                   key={user.id}
-                  className="card flex items-center justify-between"
+                  className="card flex items-center justify-between hover:border-gray-600 transition-all duration-200"
                 >
-                  <div className="flex items-center gap-4">
+                  {/* Avatar + info */}
+                  <div className="flex items-center gap-4 min-w-0">
                     <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white ${
+                      className={`w-11 h-11 rounded-full flex items-center justify-center font-bold text-white text-base flex-shrink-0 ${
                         user.role === "admin" ? "bg-primary" : "bg-blue-600"
                       }`}
                     >
                       {user.name.charAt(0).toUpperCase()}
                     </div>
-                    <div>
-                      <p className="font-semibold">{user.name}</p>
-                      <p className="text-sm text-gray-400">{user.email}</p>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-white truncate">{user.name}</p>
+                      <p className="text-sm text-gray-400 truncate">{user.email}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 flex-shrink-0 ml-3">
                     <span
-                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      className={`hidden sm:inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${
                         user.role === "admin"
                           ? "bg-primary/20 text-primary"
                           : "bg-blue-600/20 text-blue-400"
@@ -281,29 +482,40 @@ const UserManagementPage = () => {
                     >
                       {user.role === "admin" ? "Admin" : "Petugas"}
                     </span>
-                    <span className="text-sm text-gray-400">
+                    <span className="hidden md:inline-block text-sm text-gray-400">
                       {user.tracking_sessions_count || 0} tracking
                     </span>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleEdit(user)}
-                        className="text-gray-400 hover:text-white p-1"
-                        title="Edit"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleToggleActive(user.id)}
-                        className="p-1"
-                        title={user.is_active ? "Nonaktifkan" : "Aktifkan"}
-                      >
-                        {user.is_active ? (
-                          <ToggleRight className="w-6 h-6 text-green-500" />
-                        ) : (
-                          <ToggleLeft className="w-6 h-6 text-gray-500" />
-                        )}
-                      </button>
-                    </div>
+
+                    {/* Lihat Detail */}
+                    <button
+                      onClick={() => setViewingUser(user)}
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-blue-400 hover:bg-blue-600/10 transition-all"
+                      title="Lihat Detail Profil"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
+
+                    {/* Edit */}
+                    <button
+                      onClick={() => handleEdit(user)}
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-all"
+                      title="Edit"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+
+                    {/* Toggle aktif */}
+                    <button
+                      onClick={() => setToggleConfirm({ open: true, userId: user.id, isActive: user.is_active })}
+                      className="p-1"
+                      title={user.is_active ? "Nonaktifkan" : "Aktifkan"}
+                    >
+                      {user.is_active ? (
+                        <ToggleRight className="w-6 h-6 text-green-500" />
+                      ) : (
+                        <ToggleLeft className="w-6 h-6 text-gray-500" />
+                      )}
+                    </button>
                   </div>
                 </div>
               ))}
@@ -312,30 +524,71 @@ const UserManagementPage = () => {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2">
+            <div className="flex items-center justify-center gap-3">
               <button
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="btn-secondary disabled:opacity-50"
+                className="flex items-center gap-1 btn-secondary disabled:opacity-40"
               >
+                <ChevronLeft className="w-4 h-4" />
                 Sebelumnya
               </button>
-              <span className="text-gray-400">
-                Halaman {currentPage} dari {totalPages}
+              <span className="text-gray-400 text-sm">
+                {currentPage} / {totalPages}
               </span>
               <button
-                onClick={() =>
-                  setCurrentPage((p) => Math.min(totalPages, p + 1))
-                }
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
-                className="btn-secondary disabled:opacity-50"
+                className="flex items-center gap-1 btn-secondary disabled:opacity-40"
               >
                 Selanjutnya
+                <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           )}
         </div>
       </div>
+
+      {/* Detail Profile Panel */}
+      {viewingUser && (
+        <UserDetailPanel
+          user={viewingUser}
+          onClose={() => setViewingUser(null)}
+        />
+      )}
+
+      {/* Confirm Toggle Status */}
+      <ConfirmModal
+        isOpen={toggleConfirm.open}
+        onClose={() => setToggleConfirm({ open: false, userId: null, isActive: false })}
+        onConfirm={handleToggleActive}
+        title={toggleConfirm.isActive ? "Nonaktifkan Pengguna" : "Aktifkan Pengguna"}
+        message={
+          toggleConfirm.isActive
+            ? "Pengguna tidak akan dapat login setelah dinonaktifkan. Lanjutkan?"
+            : "Pengguna akan dapat login kembali setelah diaktifkan. Lanjutkan?"
+        }
+        confirmText={toggleConfirm.isActive ? "Nonaktifkan" : "Aktifkan"}
+        confirmVariant={toggleConfirm.isActive ? "danger" : "primary"}
+      />
+
+      {/* Confirm tutup form jika ada perubahan belum disimpan */}
+      <ConfirmModal
+        isOpen={cancelConfirm}
+        onClose={() => setCancelConfirm(false)}
+        onConfirm={cancelForm}
+        title="Buang Perubahan?"
+        message="Anda memiliki perubahan yang belum disimpan. Yakin ingin menutup form ini?"
+        confirmLabel="Ya, Buang"
+        confirmVariant="danger"
+      />
+
+      <style>{`
+        @keyframes slideDownFade {
+          from { opacity: 0; transform: translateY(-12px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 };

@@ -22,9 +22,12 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem("token");
       delete api.defaults.headers.common["Authorization"];
-      // Only redirect if not already on login page
       if (window.location.pathname !== "/login") {
-        window.location.href = "/login";
+        // Emit event agar App bisa tampilkan toast sebelum redirect
+        window.dispatchEvent(new CustomEvent("session-expired"));
+        setTimeout(() => {
+          window.location.href = "/login";
+        }, 1800);
       }
     }
     return Promise.reject(error);

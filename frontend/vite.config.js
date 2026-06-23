@@ -8,9 +8,6 @@ export default defineConfig({
     host: "0.0.0.0",
     port: 3000,
     https: true,
-    headers: {
-      "Cache-Control": "public, max-age=3600",
-    },
     proxy: {
       "/api": {
         target: "http://localhost:8000",

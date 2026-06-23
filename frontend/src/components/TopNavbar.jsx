@@ -10,16 +10,15 @@ import {
   ChevronDown,
   Menu,
   X,
-  LayoutDashboard,
+  LayoutGrid,
   Map,
-  Camera,
-  History,
-  Users,
-  Route as RouteIcon,
-  Play,
-  MapPin,
-  Sun,
+  ScanSearch,
+  ClipboardList,
+  UsersRound,
+  Truck,
   Moon,
+  ShieldAlert,
+  Sun,
 } from "lucide-react";
 
 const TopNavbar = () => {
@@ -29,7 +28,15 @@ const TopNavbar = () => {
   const { isDark, toggleTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const dropdownRef = useRef(null);
+
+  // Scroll listener — aktifkan efek glassmorphism saat user scroll
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   // Tutup dropdown saat klik di luar
   useEffect(() => {
@@ -81,18 +88,18 @@ const TopNavbar = () => {
 
   // Nav items berdasarkan role
   const adminNavItems = [
-    { path: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { path: "/admin/peta", icon: Map, label: "Peta Monitoring" },
-    { path: "/admin/kerusakan", icon: Camera, label: "Data Kerusakan" },
-    { path: "/admin/tracking", icon: RouteIcon, label: "Riwayat Tracking" },
-    { path: "/admin/pengguna", icon: Users, label: "Kelola Pengguna" },
+    { path: "/admin/dashboard",  icon: LayoutGrid,    label: "Dashboard" },
+    { path: "/admin/peta",       icon: Map,            label: "Peta Monitoring" },
+    { path: "/admin/kerusakan",  icon: ScanSearch,     label: "Data Kerusakan" },
+    { path: "/admin/tracking",   icon: ClipboardList,  label: "Riwayat Tracking" },
+    { path: "/admin/pengguna",   icon: UsersRound,     label: "Kelola Pengguna" },
   ];
 
   const petugasNavItems = [
-    { path: "/petugas/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { path: "/petugas/tracking", icon: Play, label: "Mulai Tracking" },
-    { path: "/petugas/peta", icon: Map, label: "Peta Kerusakan" },
-    { path: "/petugas/riwayat", icon: History, label: "Riwayat Tracking" },
+    { path: "/petugas/dashboard", icon: LayoutGrid,   label: "Dashboard" },
+    { path: "/petugas/tracking",  icon: Truck,        label: "Mulai Tracking" },
+    { path: "/petugas/peta",      icon: Map,          label: "Peta Kerusakan" },
+    { path: "/petugas/riwayat",   icon: ClipboardList, label: "Riwayat Tracking" },
   ];
 
   const navItems = isAdmin() ? adminNavItems : petugasNavItems;
@@ -112,14 +119,35 @@ const TopNavbar = () => {
       {/* ============================================================
           NAVBAR UTAMA
           ============================================================ */}
-      <nav className="bg-gradient-to-r from-gray-900 via-gray-800 to-blue-900 border-b border-gray-700 px-4 lg:px-6 py-3 lg:py-4 relative z-[600]">
+      <nav
+        style={{
+          transition: 'background 0.3s ease, box-shadow 0.3s ease, padding 0.3s ease, backdrop-filter 0.3s ease',
+        }}
+        className={[
+          'border-b relative z-[600]',
+          scrolled ? 'py-2 lg:py-2.5' : 'py-3 lg:py-4',
+          scrolled
+            ? isDark
+              ? 'bg-gray-900/80 backdrop-blur-xl border-gray-700/60 shadow-lg shadow-black/30'
+              : 'bg-white/80 backdrop-blur-xl border-gray-200/60 shadow-lg shadow-black/10'
+            : isDark
+              ? 'bg-gradient-to-r from-gray-900 via-gray-800 to-blue-900 border-gray-700'
+              : 'bg-white border-gray-200 shadow-sm',
+        ].join(' ')}
+      >
+        {/* Centered container — sejajar dengan konten halaman */}
+        <div className="max-w-[1400px] mx-auto px-4 lg:px-8">
         <div className="flex items-center justify-between">
           {/* KIRI */}
           <div className="flex items-center gap-3 lg:gap-8">
             {/* Hamburger — hanya mobile */}
             <button
               onClick={() => setDrawerOpen(true)}
-              className="lg:hidden flex items-center justify-center w-9 h-9 rounded-lg bg-gray-700/60 hover:bg-gray-600/80 transition-colors text-white"
+              className={`lg:hidden flex items-center justify-center w-9 h-9 rounded-lg transition-colors ${
+                isDark
+                  ? "bg-gray-700/60 hover:bg-gray-600/80 text-white"
+                  : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+              }`}
               aria-label="Buka menu navigasi"
             >
               <Menu className="w-5 h-5" />
@@ -127,14 +155,14 @@ const TopNavbar = () => {
 
             {/* Logo */}
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 lg:w-8 lg:h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                <MapPin className="w-4 h-4 lg:w-5 lg:h-5 text-white" />
+              <div className="w-7 h-7 lg:w-8 lg:h-8 bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-900/50">
+                <ShieldAlert className="w-4 h-4 lg:w-5 lg:h-5 text-white" />
               </div>
               <div className="hidden sm:block">
-                <p className="text-sm lg:text-base font-bold text-white leading-none">
+                <p className={`text-sm lg:text-base font-bold leading-none ${isDark ? "text-white" : "text-gray-900"}`}>
                   Road Damage
                 </p>
-                <p className="text-[10px] lg:text-xs text-blue-300 leading-none mt-0.5">
+                <p className={`text-[10px] lg:text-xs leading-none mt-0.5 ${isDark ? "text-blue-300" : "text-blue-600"}`}>
                   Detection System
                 </p>
               </div>
@@ -150,8 +178,10 @@ const TopNavbar = () => {
                     to={item.path}
                     className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-colors ${
                       isActive(item.path)
-                        ? "bg-blue-600/30 text-blue-300 border border-blue-500/40"
-                        : "text-gray-400 hover:text-white hover:bg-gray-700/50"
+                        ? "bg-blue-600/20 text-blue-600 border border-blue-500/30"
+                        : isDark
+                          ? "text-gray-400 hover:text-white hover:bg-gray-700/50"
+                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
                     }`}
                   >
                     <Icon className="w-4 h-4" />
@@ -166,7 +196,7 @@ const TopNavbar = () => {
           <div className="flex items-center gap-2">
             {/* Theme toggle */}
             <button
-              onClick={toggleTheme}
+              onClick={(e) => toggleTheme(e.currentTarget)}
               className="flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200"
               style={{
                 background: isDark
@@ -199,36 +229,44 @@ const TopNavbar = () => {
             <div className="relative hidden lg:block" ref={dropdownRef}>
               <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-700/50 transition-colors"
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                  isDark ? "hover:bg-gray-700/50" : "hover:bg-gray-100"
+                }`}
               >
                 <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-white text-sm bg-blue-600 flex-shrink-0">
                   {user?.name?.charAt(0).toUpperCase()}
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-semibold text-white leading-tight">
+                  <p className={`text-sm font-semibold leading-tight ${isDark ? "text-white" : "text-gray-900"}`}>
                     {user?.name || "Admin"}
                   </p>
-                  <p className="text-xs text-gray-400 leading-tight">
+                  <p className={`text-xs leading-tight ${isDark ? "text-gray-400" : "text-gray-500"}`}>
                     {user?.role === "admin" ? "Administrator" : "Petugas"}
                   </p>
                 </div>
                 <ChevronDown
                   size={15}
-                  className={`text-gray-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                  className={`transition-transform ${isOpen ? "rotate-180" : ""} ${isDark ? "text-gray-400" : "text-gray-500"}`}
                 />
               </button>
 
               {/* Dropdown */}
               {isOpen && (
-                <div className="absolute top-full right-0 mt-2 w-56 bg-gray-800 border border-gray-700 rounded-lg shadow-xl overflow-hidden z-[700]">
-                  <div className="px-4 py-3 bg-gray-900 border-b border-gray-700">
-                    <p className="text-sm font-semibold text-white">
+                <div className={`absolute top-full right-0 mt-2 w-56 border rounded-lg shadow-xl overflow-hidden z-[700] ${
+                  isDark
+                    ? "bg-gray-800 border-gray-700"
+                    : "bg-white border-gray-200"
+                }`}>
+                  <div className={`px-4 py-3 border-b ${
+                    isDark ? "bg-gray-900 border-gray-700" : "bg-gray-50 border-gray-200"
+                  }`}>
+                    <p className={`text-sm font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>
                       {user?.name}
                     </p>
-                    <p className="text-xs text-gray-400 mt-0.5">
+                    <p className={`text-xs mt-0.5 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
                       {user?.email}
                     </p>
-                    <span className="inline-block mt-1 text-xs bg-blue-600/30 text-blue-300 border border-blue-500/40 rounded px-2 py-0.5 capitalize">
+                    <span className="inline-block mt-1 text-xs bg-blue-600/20 text-blue-500 border border-blue-500/30 rounded px-2 py-0.5 capitalize">
                       {user?.role === "admin" ? "Administrator" : "Petugas"}
                     </span>
                   </div>
@@ -239,7 +277,11 @@ const TopNavbar = () => {
                         <button
                           key={item.path}
                           onClick={() => goToPage(item.path)}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-blue-600/20 hover:text-blue-300 transition-colors"
+                          className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
+                            isDark
+                              ? "text-gray-300 hover:bg-blue-600/20 hover:text-blue-300"
+                              : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+                          }`}
                         >
                           <Icon size={15} className="flex-shrink-0" />
                           <span>{item.label}</span>
@@ -247,10 +289,14 @@ const TopNavbar = () => {
                       );
                     })}
                   </nav>
-                  <div className="h-px bg-gray-700" />
+                  <div className={`h-px ${isDark ? "bg-gray-700" : "bg-gray-200"}`} />
                   <button
                     onClick={handleLogout}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-red-600/20 hover:text-red-300 transition-colors"
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
+                      isDark
+                        ? "text-red-400 hover:bg-red-600/20 hover:text-red-300"
+                        : "text-red-500 hover:bg-red-50 hover:text-red-600"
+                    }`}
                   >
                     <LogOut size={15} className="flex-shrink-0" />
                     <span>Logout</span>
@@ -259,7 +305,8 @@ const TopNavbar = () => {
               )}
             </div>
           </div>
-        </div>
+        </div>{/* end flex justify-between */}
+        </div>{/* end max-w-[1400px] centered container */}
       </nav>
 
       {/* ============================================================
@@ -278,24 +325,36 @@ const TopNavbar = () => {
 
       <div
         style={{ zIndex: 900 }}
-        className={`lg:hidden fixed top-0 left-0 h-full w-72 max-w-[85vw] bg-gray-900 border-r border-gray-700 flex flex-col shadow-2xl transition-transform duration-300 ease-in-out ${
+        className={`lg:hidden fixed top-0 left-0 h-full w-72 max-w-[85vw] flex flex-col shadow-2xl transition-transform duration-300 ease-in-out border-r ${
           drawerOpen ? "translate-x-0" : "-translate-x-full"
+        } ${
+          isDark
+            ? "bg-gray-900 border-gray-700"
+            : "bg-white border-gray-200"
         }`}
       >
         {/* Drawer header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-700 bg-gradient-to-r from-gray-900 to-blue-900/60">
+        <div className={`flex items-center justify-between px-5 py-4 border-b ${
+          isDark
+            ? "border-gray-700 bg-gradient-to-r from-gray-900 to-blue-900/60"
+            : "border-gray-200 bg-gradient-to-r from-white to-blue-50"
+        }`}>
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <MapPin className="w-5 h-5 text-white" />
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg flex items-center justify-center shadow-lg shadow-blue-900/30">
+              <ShieldAlert className="w-5 h-5 text-white" />
             </div>
             <div>
-              <p className="text-sm font-bold text-white">Road Damage</p>
-              <p className="text-[10px] text-blue-300">Detection System</p>
+              <p className={`text-sm font-bold ${isDark ? "text-white" : "text-gray-900"}`}>Road Damage</p>
+              <p className={`text-[10px] ${isDark ? "text-blue-300" : "text-blue-600"}`}>Detection System</p>
             </div>
           </div>
           <button
             onClick={() => setDrawerOpen(false)}
-            className="w-8 h-8 rounded-lg bg-gray-700/60 hover:bg-gray-600/80 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
+            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+              isDark
+                ? "bg-gray-700/60 hover:bg-gray-600/80 text-gray-400 hover:text-white"
+                : "bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-900"
+            }`}
             aria-label="Tutup menu"
           >
             <X className="w-4 h-4" />
@@ -305,24 +364,28 @@ const TopNavbar = () => {
         {/* User info — klik ke ProfilPage */}
         <button
           onClick={() => goToPage(`${basePath}/profil`)}
-          className="px-5 py-4 border-b border-gray-700 bg-gray-800/50 hover:bg-gray-700/50 transition-colors text-left w-full"
+          className={`px-5 py-4 border-b transition-colors text-left w-full ${
+            isDark
+              ? "border-gray-700 bg-gray-800/50 hover:bg-gray-700/50"
+              : "border-gray-200 bg-gray-50 hover:bg-gray-100"
+          }`}
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white text-base flex-shrink-0">
               {user?.name?.charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-white truncate">
+              <p className={`text-sm font-semibold truncate ${isDark ? "text-white" : "text-gray-900"}`}>
                 {user?.name}
               </p>
-              <p className="text-xs text-gray-400 truncate">{user?.email}</p>
-              <span className="inline-block mt-0.5 text-[10px] bg-blue-600/30 text-blue-300 border border-blue-500/40 rounded px-1.5 py-0.5 capitalize">
+              <p className={`text-xs truncate ${isDark ? "text-gray-400" : "text-gray-500"}`}>{user?.email}</p>
+              <span className="inline-block mt-0.5 text-[10px] bg-blue-600/20 text-blue-500 border border-blue-500/30 rounded px-1.5 py-0.5 capitalize">
                 {user?.role === "admin" ? "Administrator" : "Petugas"}
               </span>
             </div>
             <ChevronDown
               size={14}
-              className="text-gray-500 -rotate-90 flex-shrink-0"
+              className={`-rotate-90 flex-shrink-0 ${isDark ? "text-gray-500" : "text-gray-400"}`}
             />
           </div>
         </button>
@@ -341,12 +404,14 @@ const TopNavbar = () => {
                 to={item.path}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
                   active
-                    ? "bg-blue-600 text-white shadow-lg shadow-blue-900/40"
-                    : "text-gray-300 hover:bg-gray-800 hover:text-white"
+                    ? "bg-blue-600 text-white shadow-lg shadow-blue-900/30"
+                    : isDark
+                      ? "text-gray-300 hover:bg-gray-800 hover:text-white"
+                      : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
                 }`}
               >
                 <Icon
-                  className={`w-5 h-5 flex-shrink-0 ${active ? "text-white" : "text-gray-400"}`}
+                  className={`w-5 h-5 flex-shrink-0 ${active ? "text-white" : isDark ? "text-gray-400" : "text-gray-500"}`}
                 />
                 <span className="font-medium text-sm">{item.label}</span>
                 {active && (
@@ -356,8 +421,8 @@ const TopNavbar = () => {
             );
           })}
 
-          <div className="h-px bg-gray-700 my-2" />
-          <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider px-3 mb-2">
+          <div className={`h-px my-2 ${isDark ? "bg-gray-700" : "bg-gray-200"}`} />
+          <p className={`text-[10px] font-semibold uppercase tracking-wider px-3 mb-2 ${isDark ? "text-gray-500" : "text-gray-400"}`}>
             Akun
           </p>
 
@@ -371,12 +436,14 @@ const TopNavbar = () => {
                 onClick={() => goToPage(item.path)}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
                   active
-                    ? "bg-blue-600 text-white shadow-lg shadow-blue-900/40"
-                    : "text-gray-300 hover:bg-gray-800 hover:text-white"
+                    ? "bg-blue-600 text-white shadow-lg shadow-blue-900/30"
+                    : isDark
+                      ? "text-gray-300 hover:bg-gray-800 hover:text-white"
+                      : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
                 }`}
               >
                 <Icon
-                  className={`w-5 h-5 flex-shrink-0 ${active ? "text-white" : "text-gray-400"}`}
+                  className={`w-5 h-5 flex-shrink-0 ${active ? "text-white" : isDark ? "text-gray-400" : "text-gray-500"}`}
                 />
                 <span className="font-medium text-sm">{item.label}</span>
                 {active && (
@@ -388,8 +455,12 @@ const TopNavbar = () => {
 
           {/* Theme toggle */}
           <button
-            onClick={toggleTheme}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-gray-800 hover:text-white transition-all"
+            onClick={(e) => toggleTheme(e.currentTarget)}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+              isDark
+                ? "text-gray-300 hover:bg-gray-800 hover:text-white"
+                : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+            }`}
           >
             {isDark ? (
               <Sun className="w-5 h-5 flex-shrink-0 text-amber-400" />
@@ -403,15 +474,19 @@ const TopNavbar = () => {
         </nav>
 
         {/* Logout */}
-        <div className="px-3 py-3 border-t border-gray-700">
+        <div className={`px-3 py-3 border-t ${isDark ? "border-gray-700" : "border-gray-200"}`}>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-600/20 hover:text-red-300 transition-all"
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+              isDark
+                ? "text-red-400 hover:bg-red-600/20 hover:text-red-300"
+                : "text-red-500 hover:bg-red-50 hover:text-red-600"
+            }`}
           >
             <LogOut className="w-5 h-5 flex-shrink-0" />
             <span className="font-medium text-sm">Logout</span>
           </button>
-          <p className="text-[10px] text-center text-gray-600 mt-2">
+          <p className={`text-[10px] text-center mt-2 ${isDark ? "text-gray-600" : "text-gray-400"}`}>
             Dinas PU Kabupaten Kubu Raya
           </p>
         </div>

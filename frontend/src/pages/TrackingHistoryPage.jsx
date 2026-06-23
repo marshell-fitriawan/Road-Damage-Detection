@@ -1,22 +1,30 @@
-﻿import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { trackingService } from "../services/api";
+import ConfirmModal from "../components/ConfirmModal";
+import { timeAgo } from "../utils/timeUtils";
+import { useToast } from "../contexts/ToastContext";
 import {
-  Route,
+  Footprints,
   MapPin,
   Clock,
-  AlertTriangle,
+  ShieldX,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   Trash2,
   Trash,
   CheckSquare,
   Square,
   X,
+  Radio,
+  CheckCheck,
 } from "lucide-react";
 
 const TrackingHistoryPage = ({ showAll = false }) => {
   const { isAdmin } = useAuth();
+  const toast = useToast();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -28,6 +36,10 @@ const TrackingHistoryPage = ({ showAll = false }) => {
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  // State custom confirm modal
+  const [deleteConfirm, setDeleteConfirm] = useState({ open: false, sessionId: null, bulk: false });
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadSessions();
@@ -46,6 +58,7 @@ const TrackingHistoryPage = ({ showAll = false }) => {
       setTotalPages(data.last_page || 1);
     } catch (error) {
       console.error("Error loading sessions:", error);
+      toast.error("Gagal memuat riwayat tracking. Periksa koneksi Anda.");
     } finally {
       setLoading(false);
     }
@@ -67,24 +80,41 @@ const TrackingHistoryPage = ({ showAll = false }) => {
     }
   };
 
-  // Hapus satu sesi
-  const handleDelete = async (e, sessionId) => {
+  // Hapus satu sesi — buka modal konfirmasi
+  const handleDelete = (e, sessionId) => {
     e.stopPropagation();
-    if (
-      !confirm(
-        "Hapus sesi tracking ini? Semua data kerusakan di sesi ini juga akan terhapus.",
-      )
-    )
-      return;
+    setDeleteConfirm({ open: true, sessionId, bulk: false });
+  };
+
+  // Eksekusi hapus setelah konfirmasi
+  const confirmDelete = async () => {
+    setDeleting(true);
     try {
-      await trackingService.deleteSession(sessionId);
-      if (expandedSession === sessionId) {
+      if (deleteConfirm.bulk) {
+        const count = selectedIds.size;
+        setBulkDeleting(true);
+        await trackingService.bulkDeleteSessions(Array.from(selectedIds));
+        setSelectedIds(new Set());
+        setSelectMode(false);
         setExpandedSession(null);
         setSessionDetail(null);
+        toast.delete(`${count} sesi tracking berhasil dihapus`);
+      } else {
+        await trackingService.deleteSession(deleteConfirm.sessionId);
+        if (expandedSession === deleteConfirm.sessionId) {
+          setExpandedSession(null);
+          setSessionDetail(null);
+        }
+        toast.delete("Sesi tracking berhasil dihapus");
       }
       loadSessions();
     } catch (error) {
-      alert("Gagal menghapus sesi tracking");
+      console.error("Gagal menghapus:", error);
+      toast.error("Gagal menghapus sesi tracking. Silakan coba lagi.");
+    } finally {
+      setDeleting(false);
+      setBulkDeleting(false);
+      setDeleteConfirm({ open: false, sessionId: null, bulk: false });
     }
   };
 
@@ -112,28 +142,10 @@ const TrackingHistoryPage = ({ showAll = false }) => {
     setSelectedIds(new Set());
   };
 
-  // Hapus massal
-  const handleBulkDelete = async () => {
+  // Hapus massal — buka modal konfirmasi
+  const handleBulkDelete = () => {
     if (selectedIds.size === 0) return;
-    if (
-      !confirm(
-        `Hapus ${selectedIds.size} sesi tracking? Semua data kerusakan di sesi-sesi tersebut juga akan terhapus. Tindakan ini tidak bisa dibatalkan.`,
-      )
-    )
-      return;
-    setBulkDeleting(true);
-    try {
-      await trackingService.bulkDeleteSessions(Array.from(selectedIds));
-      setSelectedIds(new Set());
-      setSelectMode(false);
-      setExpandedSession(null);
-      setSessionDetail(null);
-      loadSessions();
-    } catch (error) {
-      alert("Gagal menghapus sesi tracking");
-    } finally {
-      setBulkDeleting(false);
-    }
+    setDeleteConfirm({ open: true, sessionId: null, bulk: true });
   };
 
   const getColorForClass = (className) => {
@@ -157,9 +169,9 @@ const TrackingHistoryPage = ({ showAll = false }) => {
   }
 
   return (
-    <div className="bg-gray-900">
+    <div>
       <div className="overflow-auto p-4 lg:p-8">
-        <div className="max-w-7xl mx-auto space-y-6">
+        <div className="space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
@@ -240,11 +252,12 @@ const TrackingHistoryPage = ({ showAll = false }) => {
           )}
 
           {sessions.length === 0 ? (
-            <div className="card text-center py-12">
-              <Route className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-400 text-lg">
-                Belum ada riwayat tracking
-              </p>
+            <div className="card text-center py-16">
+              <div className="w-20 h-20 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center mx-auto mb-4">
+                <Footprints className="w-10 h-10 text-gray-500" />
+              </div>
+              <p className="text-gray-300 text-lg font-semibold">Belum ada riwayat tracking</p>
+              <p className="text-gray-500 text-sm mt-1">Sesi tracking yang sudah selesai akan muncul di sini</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -277,11 +290,15 @@ const TrackingHistoryPage = ({ showAll = false }) => {
                           <div
                             className={`w-10 h-10 rounded-full flex items-center justify-center ${
                               session.status === "active"
-                                ? "bg-green-600"
-                                : "bg-gray-600"
+                                ? "bg-green-600/20 border border-green-500/50"
+                                : "bg-gray-700/60 border border-gray-600/50"
                             }`}
                           >
-                            <Route className="w-5 h-5 text-white" />
+                            {session.status === "active" ? (
+                              <Radio className="w-5 h-5 text-green-400 animate-pulse" />
+                            ) : (
+                              <CheckCheck className="w-5 h-5 text-gray-400" />
+                            )}
                           </div>
                         )}
 
@@ -296,16 +313,16 @@ const TrackingHistoryPage = ({ showAll = false }) => {
                           )}
                           <p className="text-sm text-gray-400">
                             <Clock className="w-3 h-3 inline mr-1" />
-                            {new Date(session.started_at).toLocaleString(
-                              "id-ID",
-                            )}
+                            <span
+                              title={new Date(session.started_at).toLocaleString("id-ID")}
+                              className="cursor-help"
+                            >
+                              {timeAgo(session.started_at)}
+                            </span>
                             {session.ended_at && (
-                              <span>
-                                {" "}
-                                s/d{" "}
-                                {new Date(session.ended_at).toLocaleTimeString(
-                                  "id-ID",
-                                )}
+                              <span className="text-gray-500">
+                                {" "}s/d{" "}
+                                {new Date(session.ended_at).toLocaleTimeString("id-ID")}
                               </span>
                             )}
                           </p>
@@ -324,7 +341,7 @@ const TrackingHistoryPage = ({ showAll = false }) => {
                             {session.status === "active" ? "Aktif" : "Selesai"}
                           </span>
                           <p className="text-sm text-gray-400 mt-1">
-                            <AlertTriangle className="w-3 h-3 inline mr-1" />
+                            <ShieldX className="w-3 h-3 inline mr-1 text-red-400" />
                             {session.road_damages_count || 0} kerusakan
                           </p>
                         </div>
@@ -438,15 +455,15 @@ const TrackingHistoryPage = ({ showAll = false }) => {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2">
+            <div className="flex items-center justify-center gap-3">
               <button
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="btn-secondary disabled:opacity-50"
+                className="btn-secondary flex items-center gap-1 disabled:opacity-50"
               >
-                Sebelumnya
+                <ChevronLeft className="w-4 h-4" /> Sebelumnya
               </button>
-              <span className="text-gray-400">
+              <span className="text-gray-400 text-sm">
                 Halaman {currentPage} dari {totalPages}
               </span>
               <button
@@ -454,14 +471,30 @@ const TrackingHistoryPage = ({ showAll = false }) => {
                   setCurrentPage((p) => Math.min(totalPages, p + 1))
                 }
                 disabled={currentPage === totalPages}
-                className="btn-secondary disabled:opacity-50"
+                className="btn-secondary flex items-center gap-1 disabled:opacity-50"
               >
-                Selanjutnya
+                Selanjutnya <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           )}
         </div>
       </div>
+
+      {/* Custom Confirm Modal */}
+      <ConfirmModal
+        isOpen={deleteConfirm.open}
+        type="danger"
+        title={deleteConfirm.bulk ? `Hapus ${selectedIds.size} Sesi?` : "Hapus Sesi Tracking?"}
+        message={
+          deleteConfirm.bulk
+            ? `${selectedIds.size} sesi tracking beserta semua data kerusakannya akan dihapus permanen. Tindakan ini tidak bisa dibatalkan.`
+            : "Sesi tracking ini beserta semua data kerusakannya akan dihapus secara permanen."
+        }
+        confirmLabel="Ya, Hapus"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirm({ open: false, sessionId: null, bulk: false })}
+        loading={deleting}
+      />
     </div>
   );
 };

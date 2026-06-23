@@ -11,6 +11,7 @@ import RoadDamageMap, {
 import { roadDamageService, trackingService } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
+import { useToast } from "../contexts/ToastContext";
 import {
   Filter,
   X,
@@ -20,6 +21,7 @@ import {
   Moon,
   Users,
   ChevronDown,
+  Navigation,
 } from "lucide-react";
 
 const POLL_INTERVAL = 5000;
@@ -117,12 +119,14 @@ const FilterPanel = ({ filters, setFilters, markers, onClose, onSwitchToAktivita
           <button className="px-4 py-1 text-sm font-bold text-white border-b-2 border-blue-500">
             FILTER
           </button>
-          <button
-            onClick={onSwitchToAktivitas}
-            className="px-4 py-1 text-sm font-semibold text-gray-400 hover:text-white transition"
-          >
-            AKTIVITAS
-          </button>
+          {onSwitchToAktivitas && (
+            <button
+              onClick={onSwitchToAktivitas}
+              className="px-4 py-1 text-sm font-semibold text-gray-400 hover:text-white transition"
+            >
+              AKTIVITAS
+            </button>
+          )}
         </div>
         <button
           onClick={onClose}
@@ -506,7 +510,13 @@ const AktivitasPanel = ({ liveTracking, onClose, onSwitchToFilter }) => {
 };
 
 const MapPage = () => {
+  const toast = useToast();
   const { isAdmin } = useAuth();
+  // Simpan isAdmin di ref agar refreshData selalu pakai versi terbaru
+  // tanpa perlu isAdmin masuk ke deps array (isAdmin berubah tiap render)
+  const isAdminRef = useRef(isAdmin);
+  useEffect(() => { isAdminRef.current = isAdmin; });
+
   const [markers, setMarkers] = useState([]);
   const [routePaths, setRoutePaths] = useState([]);
   const [liveTracking, setLiveTracking] = useState([]);
@@ -524,7 +534,59 @@ const MapPage = () => {
   const [selectedRuas, setSelectedRuas] = useState("");
   const [ruasList, setRuasList] = useState([]);
   const [lastUpdate, setLastUpdate] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
   const pollRef = useRef(null);
+
+  // ── Geolocation: lokasi user saat ini ──
+  const [userLocation, setUserLocation] = useState(null);
+  const [locating, setLocating] = useState(false);
+  const [locError, setLocError] = useState(null);
+  const watchRef = useRef(null);
+
+  // Mulai/berhenti watch lokasi
+  const toggleUserLocation = () => {
+    if (userLocation || locating) {
+      // Matikan
+      if (watchRef.current !== null) {
+        navigator.geolocation.clearWatch(watchRef.current);
+        watchRef.current = null;
+      }
+      setUserLocation(null);
+      setLocating(false);
+      setLocError(null);
+    } else {
+      if (!navigator.geolocation) {
+        setLocError("Browser tidak mendukung GPS");
+        return;
+      }
+      setLocating(true);
+      setLocError(null);
+      watchRef.current = navigator.geolocation.watchPosition(
+        (pos) => {
+          setUserLocation({
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            accuracy: pos.coords.accuracy,
+          });
+          setLocating(false);
+        },
+        (err) => {
+          setLocError("Izin GPS ditolak atau tidak tersedia");
+          setLocating(false);
+        },
+        { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+      );
+    }
+  };
+
+  // Bersihkan watch saat unmount
+  useEffect(() => {
+    return () => {
+      if (watchRef.current !== null) {
+        navigator.geolocation.clearWatch(watchRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -541,10 +603,10 @@ const MapPage = () => {
     };
   }, [isLiveMode, filters]);
 
-  // Auto-open Aktivitas panel saat pertama kali ada petugas aktif
+  // Auto-open Aktivitas panel HANYA untuk admin saat pertama kali ada petugas aktif
   const autoOpenedRef = useRef(false);
   useEffect(() => {
-    if (liveTracking.length > 0 && !autoOpenedRef.current) {
+    if (isAdmin() && liveTracking.length > 0 && !autoOpenedRef.current) {
       autoOpenedRef.current = true;
       setOpenPanel("aktivitas");
     }
@@ -554,6 +616,64 @@ const MapPage = () => {
     }
   }, [liveTracking.length]);
 
+  const refreshData = useCallback(async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      const adminMode = isAdminRef.current();
+      const promises = [roadDamageService.getMapMarkers(filters)];
+      if (adminMode) {
+        promises.push(
+          trackingService
+            .getAllHistory({ per_page: 50, status: "completed" })
+            .catch(() => ({ data: [] })),
+          trackingService.getLiveSessions().catch(() => ({ sessions: [] })),
+        );
+      } else {
+        // Petugas: hanya ambil riwayat mereka sendiri (tidak perlu tampilkan di peta)
+        promises.push(
+          Promise.resolve({ data: [] }),
+        );
+      }
+
+      const results = await Promise.all(promises);
+      setIfChanged(setMarkers, results[0].markers || []);
+
+      // Hanya admin yang bisa melihat route path petugas di peta
+      if (adminMode) {
+        const completedRoutes = (results[1].data || [])
+          .filter(
+            (s) =>
+              (s.route_path && s.route_path.length > 1) ||
+              (s.road_damages && s.road_damages.length > 0),
+          )
+          .map((s, idx) => ({
+            id: s.id,
+            path: s.route_path || [],
+            color: ROUTE_COLORS[idx % ROUTE_COLORS.length],
+            userName: s.user?.name || "Petugas",
+            start_point: s.start_point || null,
+            end_point: s.end_point || null,
+            ruas_jalan_name: s.ruas_jalan_name || null,
+            damages: s.road_damages || [],
+          }));
+        setIfChanged(setRoutePaths, completedRoutes);
+      } else {
+        setIfChanged(setRoutePaths, []);
+      }
+
+      if (adminMode && results[2]) {
+        setIfChanged(setLiveTracking, results[2].sessions || []);
+      }
+      setLastUpdate(new Date());
+    } catch (error) {
+      console.error("Error refreshing map data:", error);
+      toast.error('Gagal memperbarui data');
+    } finally {
+      setRefreshing(false);
+    }
+  }, [filters, refreshing]); // ← isAdmin tidak perlu masuk deps, pakai ref
+
   const loadData = async () => {
     setLoading(true);
     try {
@@ -562,52 +682,6 @@ const MapPage = () => {
       setLoading(false);
     }
   };
-
-  const refreshData = useCallback(async () => {
-    try {
-      const promises = [roadDamageService.getMapMarkers(filters)];
-      if (isAdmin()) {
-        promises.push(
-          trackingService
-            .getAllHistory({ per_page: 50, status: "completed" })
-            .catch(() => ({ data: [] })),
-          trackingService.getLiveSessions().catch(() => ({ sessions: [] })),
-        );
-      } else {
-        promises.push(
-          trackingService.getMyHistory(1).catch(() => ({ data: [] })),
-        );
-      }
-
-      const results = await Promise.all(promises);
-      setIfChanged(setMarkers, results[0].markers || []);
-
-      const completedRoutes = (results[1].data || [])
-        .filter(
-          (s) =>
-            (s.route_path && s.route_path.length > 1) ||
-            (s.road_damages && s.road_damages.length > 0),
-        )
-        .map((s, idx) => ({
-          id: s.id,
-          path: s.route_path || [],
-          color: ROUTE_COLORS[idx % ROUTE_COLORS.length],
-          userName: s.user?.name || "Petugas",
-          start_point: s.start_point || null,
-          end_point: s.end_point || null,
-          ruas_jalan_name: s.ruas_jalan_name || null,
-          damages: s.road_damages || [],
-        }));
-      setIfChanged(setRoutePaths, completedRoutes);
-
-      if (isAdmin() && results[2]) {
-        setIfChanged(setLiveTracking, results[2].sessions || []);
-      }
-      setLastUpdate(new Date());
-    } catch (error) {
-      console.error("Error refreshing map data:", error);
-    }
-  }, [filters, isAdmin]);
 
   const hasActiveFilters = filters.type || filters.severity || filters.status;
 
@@ -642,23 +716,9 @@ const MapPage = () => {
           }}
         >
           {/* Top Controls Bar */}
-          <div className="bg-gray-900/80 backdrop-blur-sm border-b border-gray-700/60 px-2 py-1.5 flex items-center justify-between flex-wrap gap-1.5 text-xs z-10 flex-shrink-0">
+          <div className="bg-gray-900/80 backdrop-blur-sm border-b border-gray-700/60 py-1.5 text-xs z-10 flex-shrink-0">
+            <div className="max-w-[1400px] mx-auto px-4 lg:px-8 flex items-center justify-between flex-wrap gap-1.5">
             <div className="flex items-center gap-2">
-              {isAdmin() && (
-                <button
-                  onClick={() => setIsLiveMode(!isLiveMode)}
-                  className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition-all ${
-                    isLiveMode
-                      ? "bg-green-500 text-white shadow-lg shadow-green-500/30"
-                      : "bg-gray-600 text-gray-300"
-                  }`}
-                >
-                  <Radio
-                    className={`w-3 h-3 ${isLiveMode ? "animate-pulse" : ""}`}
-                  />
-                  {isLiveMode ? "LIVE" : "LIVE OFF"}
-                </button>
-              )}
 
               <div className="relative">
                 <select
@@ -695,9 +755,27 @@ const MapPage = () => {
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => refreshData()}
-                className="bg-gray-800 hover:bg-gray-700 border border-gray-600 text-gray-200 text-xs px-2.5 py-1 rounded-lg transition flex items-center gap-1"
+                disabled={refreshing}
+                className="bg-gray-800 hover:bg-gray-700 border border-gray-600 text-gray-200 text-xs px-2.5 py-1 rounded-lg transition flex items-center gap-1 disabled:opacity-50"
               >
-                <RefreshCw className="w-3 h-3" /> Refresh
+                <RefreshCw className={`w-3 h-3 ${refreshing ? 'animate-spin' : ''}`} />
+                {refreshing ? 'Memuat...' : 'Refresh'}
+              </button>
+
+              {/* Tombol Lokasi Saya */}
+              <button
+                onClick={toggleUserLocation}
+                title={userLocation ? "Matikan lokasi saya" : locating ? "Mencari lokasi..." : "Tampilkan lokasi saya"}
+                className={`text-xs px-2.5 py-1 rounded-lg transition flex items-center gap-1 border ${
+                  userLocation
+                    ? "bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-900/40"
+                    : locating
+                    ? "bg-blue-900/50 border-blue-600 text-blue-300 animate-pulse"
+                    : "bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700"
+                }`}
+              >
+                <Navigation className={`w-3 h-3 ${locating ? 'animate-spin' : ''}`} />
+                {locating ? 'GPS...' : userLocation ? 'Saya' : 'Lokasi'}
               </button>
 
               {/* Filter button */}
@@ -758,6 +836,7 @@ const MapPage = () => {
                 )}
               </button>
             </div>
+            </div>{/* end max-w centered container */}
           </div>
 
           {/* Map */}
@@ -786,6 +865,7 @@ const MapPage = () => {
                 selectedRuas={selectedRuas || null}
                 onRuasListLoaded={setRuasList}
                 filters={filters}
+                userLocation={userLocation}
               />
             )}
 
@@ -796,10 +876,10 @@ const MapPage = () => {
                 setFilters={setFilters}
                 markers={markers}
                 onClose={() => setOpenPanel(null)}
-                onSwitchToAktivitas={() => setOpenPanel("aktivitas")}
+                onSwitchToAktivitas={isAdmin() ? () => setOpenPanel("aktivitas") : null}
               />
             )}
-            {openPanel === "aktivitas" && (
+            {isAdmin() && openPanel === "aktivitas" && (
               <AktivitasPanel
                 liveTracking={liveTracking}
                 onClose={() => setOpenPanel(null)}
@@ -826,6 +906,15 @@ const MapPage = () => {
                 <div className="w-2 h-2 rounded-full bg-blue-500 shadow-lg shadow-blue-500/50 animate-pulse" />
                 <span>Live</span>
               </div>
+            )}
+            {userLocation && (
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-blue-400 border border-white/50" style={{ boxShadow: '0 0 0 2px rgba(59,130,246,0.4)' }} />
+                <span>Lokasi Saya</span>
+              </div>
+            )}
+            {locError && (
+              <span className="text-red-400 text-[10px] ml-1">⚠ {locError}</span>
             )}
             {lastUpdate && (
               <span className="ml-auto text-gray-600 text-[10px]">

@@ -16,20 +16,26 @@ import {
 import { Pie, Bar, Line } from "react-chartjs-2";
 import { roadDamageService, trackingService } from "../services/api";
 import { useTheme } from "../contexts/ThemeContext";
+import { useToast } from "../contexts/ToastContext";
 import {
+  ShieldAlert,
   AlertCircle,
   AlertTriangle,
   CheckCircle,
   Clock,
   TrendingUp,
   Users,
-  Route,
+  Footprints,
   Activity,
   Zap,
   ArrowUpRight,
   ArrowDownRight,
   Calendar,
   ChevronRight,
+  Wrench,
+  Hourglass,
+  BarChart2,
+  RefreshCw,
 } from "lucide-react";
 
 ChartJS.register(
@@ -88,16 +94,27 @@ const StatCard = ({ icon: Icon, label, value, trend, trendUp, color }) => {
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { isDark } = useTheme();
+  const toast = useToast();
   const [stats, setStats] = useState(null);
   const [recentTracking, setRecentTracking] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState("week");
 
   useEffect(() => {
     loadData();
   }, []);
 
-  const loadData = async () => {
+  // Auto-refresh statistik setiap 30 detik
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadData();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const loadData = async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
     try {
       const [statsData, trackingData] = await Promise.all([
         roadDamageService.getStatistics(),
@@ -107,10 +124,13 @@ const AdminDashboard = () => {
       ]);
       setStats(statsData);
       setRecentTracking(trackingData.data || []);
+      if (isRefresh) toast.success("Data berhasil diperbarui");
     } catch (error) {
       console.error("Error loading dashboard:", error);
+      if (isRefresh) toast.error("Gagal memperbarui data");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -210,18 +230,22 @@ const AdminDashboard = () => {
     },
   };
 
+  const safeByType = stats.by_type || [];
+  const safeBySeverity = stats.by_severity || [];
+  const safeByStatus = stats.by_status || [];
+
   const damageTypeData = {
-    labels: stats.by_type.map((item) => item.damage_type),
+    labels: safeByType.map((item) => item.damage_type),
     datasets: [
       {
         label: "Jumlah Kerusakan",
-        data: stats.by_type.map((item) => item.count),
-        backgroundColor: stats.by_type.map(
+        data: safeByType.map((item) => item.count),
+        backgroundColor: safeByType.map(
           (item) =>
             damageTypeColors[item.damage_type]?.bg ||
             "rgba(156, 163, 175, 0.8)",
         ),
-        borderColor: stats.by_type.map(
+        borderColor: safeByType.map(
           (item) =>
             damageTypeColors[item.damage_type]?.border ||
             "rgba(156, 163, 175, 1)",
@@ -232,11 +256,11 @@ const AdminDashboard = () => {
   };
 
   const severityData = {
-    labels: stats.by_severity.map((item) => item.severity.toUpperCase()),
+    labels: safeBySeverity.map((item) => item.severity.toUpperCase()),
     datasets: [
       {
         label: "Jumlah",
-        data: stats.by_severity.map((item) => item.count),
+        data: safeBySeverity.map((item) => item.count),
         backgroundColor: [
           "rgba(39, 174, 96, 0.8)",
           "rgba(243, 156, 18, 0.8)",
@@ -296,22 +320,20 @@ const AdminDashboard = () => {
   };
 
   const pendingCount =
-    stats.by_status.find((s) => s.status === "pending")?.count || 0;
+    safeByStatus.find((s) => s.status === "pending")?.count || 0;
   const verifiedCount =
-    stats.by_status.find((s) => s.status === "verified")?.count || 0;
+    safeByStatus.find((s) => s.status === "verified")?.count || 0;
   const repairedCount =
-    stats.by_status.find((s) => s.status === "repaired")?.count || 0;
+    safeByStatus.find((s) => s.status === "repaired")?.count || 0;
 
-  // Get most common damage type
-  const mostCommonDamage = stats.by_type.reduce(
-    (a, b) => (a.count > b.count ? a : b),
-    stats.by_type[0],
-  );
+  // Get most common damage type - safe guard untuk array kosong
+  const mostCommonDamage =
+    safeByType.length > 0
+      ? safeByType.reduce((a, b) => (a.count > b.count ? a : b))
+      : null;
 
   return (
-    <div className="bg-gray-900">
-      <div className="overflow-auto p-4 lg:p-8">
-        <div className="max-w-7xl mx-auto space-y-8 pb-8">
+    <div className="space-y-8 pb-8">
           {/* Header Section */}
           <div className="space-y-2">
             <div className="flex items-center justify-between flex-wrap gap-4">
@@ -324,7 +346,16 @@ const AdminDashboard = () => {
                   {dateStr} • {timeStr} - Data real-time
                 </p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  onClick={() => loadData(true)}
+                  disabled={refreshing}
+                  title="Refresh data sekarang"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium bg-gray-700 text-gray-300 hover:bg-gray-600 transition disabled:opacity-50"
+                >
+                  <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
+                  <span className="hidden sm:inline">{refreshing ? "Memuat..." : "Refresh"}</span>
+                </button>
                 <button
                   onClick={() => setSelectedPeriod("week")}
                   className={`px-4 py-2 rounded-lg font-medium transition ${selectedPeriod === "week" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
@@ -344,7 +375,7 @@ const AdminDashboard = () => {
           {/* Stats Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <StatCard
-              icon={AlertCircle}
+              icon={ShieldAlert}
               label="Total Kerusakan"
               value={stats.total}
               color="red"
@@ -356,13 +387,13 @@ const AdminDashboard = () => {
               color="green"
             />
             <StatCard
-              icon={Clock}
+              icon={Hourglass}
               label="Belum Diverifikasi"
               value={pendingCount}
               color="yellow"
             />
             <StatCard
-              icon={CheckCircle}
+              icon={Wrench}
               label="Sudah Diperbaiki"
               value={repairedCount}
               color="blue"
@@ -383,7 +414,7 @@ const AdminDashboard = () => {
                   </p>
                 </div>
                 <div className="p-3 bg-blue-500/20 rounded-lg">
-                  <TrendingUp size={20} className="text-blue-400" />
+                  <BarChart2 size={20} className="text-blue-400" />
                 </div>
               </div>
               <div className="h-72">
@@ -403,13 +434,15 @@ const AdminDashboard = () => {
                   </p>
                 </div>
                 <div className="p-3 bg-purple-500/20 rounded-lg">
-                  <Route size={20} className="text-purple-400" />
+                  <Footprints size={20} className="text-purple-400" />
                 </div>
               </div>
 
               {recentTracking.length === 0 ? (
                 <div className="text-center py-12">
-                  <Route className="w-14 h-14 text-gray-600 mx-auto mb-4" />
+                  <div className="w-16 h-16 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center mx-auto mb-3">
+                    <Footprints className="w-8 h-8 text-gray-500" />
+                  </div>
                   <p className="text-gray-400 font-medium">
                     Belum ada riwayat tracking
                   </p>
@@ -427,7 +460,7 @@ const AdminDashboard = () => {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                           <div className="w-12 h-12 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-lg flex items-center justify-center">
-                            <Route className="w-6 h-6 text-blue-400" />
+                            <Footprints className="w-6 h-6 text-blue-400" />
                           </div>
                           <div>
                             <p className="font-semibold text-white">
@@ -555,8 +588,6 @@ const AdminDashboard = () => {
               </div>
             </div>
           </div>
-        </div>
-      </div>
     </div>
   );
 };

@@ -139,7 +139,6 @@ const AdminContactPopup = ({ onClose, isDark }) => {
               style={{
                 fontSize: 13,
                 color: isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.5)",
-                marginBottom: 16,
                 lineHeight: 1.5,
                 margin: 0,
                 marginBottom: 16,

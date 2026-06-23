@@ -5,6 +5,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { trackingService } from "../services/api";
 import { useTheme } from "../contexts/ThemeContext";
+import { useToast } from "../contexts/ToastContext";
 import {
   Camera,
   StopCircle,
@@ -548,6 +549,7 @@ const CameraLandscapeOverlay = ({
 
 const TrackingPage = () => {
   const { isDark } = useTheme();
+  const toast = useToast();
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const sendCanvasRef = useRef(null);
@@ -653,6 +655,7 @@ const TrackingPage = () => {
       }
     } catch (err) {
       console.error("Error checking active session:", err);
+      // Biarkan silent — user belum perlu tahu jika tidak ada sesi aktif
     }
   };
 
@@ -774,10 +777,9 @@ const TrackingPage = () => {
       setStatusMessage(`Tracking aktif${ruasInfo}. Arahkan kamera ke jalan.`);
     } catch (err) {
       console.error("Error starting tracking:", err);
-      setError(
-        err.response?.data?.message ||
-          "Gagal memulai tracking. Pastikan kamera dan GPS diizinkan.",
-      );
+      const msg = err.response?.data?.message || "Gagal memulai tracking. Pastikan kamera dan GPS diizinkan.";
+      setError(msg);
+      toast.error(msg);
     }
   };
 
@@ -999,6 +1001,7 @@ const TrackingPage = () => {
       setStatusMessage(`Kerusakan "${detection.class_name}" tersimpan!`);
     } catch (err) {
       console.error("Error saving damage:", err);
+      // Silent — jangan ganggu alur deteksi dengan toast, cukup log
     }
   };
 
@@ -1022,7 +1025,9 @@ const TrackingPage = () => {
       startBackgroundGPS();
     } catch (err) {
       console.error("Error stopping tracking:", err);
-      setError("Gagal menghentikan tracking.");
+      const msg = "Gagal menghentikan tracking. Coba lagi.";
+      setError(msg);
+      toast.error(msg);
     }
   };
 

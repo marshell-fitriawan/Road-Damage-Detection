@@ -2,15 +2,18 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { trackingService } from "../services/api";
+import { useToast } from "../contexts/ToastContext";
 import {
-  Play,
-  MapPin,
-  History,
-  Route,
+  Truck,
+  Map,
+  ClipboardList,
+  ShieldAlert,
   AlertTriangle,
   Calendar,
-  CheckCircle,
+  CheckCheck,
   Activity,
+  Footprints,
+  RefreshCw,
 } from "lucide-react";
 
 const StatCard = ({ icon: Icon, label, value, color }) => {
@@ -59,16 +62,23 @@ const ActionCard = ({ icon: Icon, label, description, onClick, color }) => {
 const PetugasDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
   const [activeSession, setActiveSession] = useState(null);
   const [recentSessions, setRecentSessions] = useState([]);
   const [myStats, setMyStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadData();
+    // Auto-refresh setiap 60 detik
+    const interval = setInterval(loadData, 60000);
+    return () => clearInterval(interval);
   }, []);
 
-  const loadData = async () => {
+  const loadData = async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
     try {
       const [activeData, historyData] = await Promise.all([
         trackingService.getActiveSession(),
@@ -77,7 +87,6 @@ const PetugasDashboard = () => {
       setActiveSession(activeData.session);
       setRecentSessions(historyData.data || []);
 
-      // Calculate stats from personal history
       if (historyData.data && historyData.data.length > 0) {
         const totalDamages = historyData.data.reduce(
           (sum, session) => sum + (session.road_damages_count || 0),
@@ -91,21 +100,16 @@ const PetugasDashboard = () => {
           ).length,
         });
       } else {
-        setMyStats({
-          totalSessions: 0,
-          totalDamages: 0,
-          completedSessions: 0,
-        });
+        setMyStats({ totalSessions: 0, totalDamages: 0, completedSessions: 0 });
       }
+      if (isRefresh) toast.success("Data berhasil diperbarui");
     } catch (error) {
       console.error("Error loading dashboard:", error);
-      setMyStats({
-        totalSessions: 0,
-        totalDamages: 0,
-        completedSessions: 0,
-      });
+      toast.error("Gagal memuat data dashboard. Periksa koneksi Anda.");
+      setMyStats({ totalSessions: 0, totalDamages: 0, completedSessions: 0 });
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -134,9 +138,7 @@ const PetugasDashboard = () => {
   });
 
   return (
-    <div className="bg-gray-900 min-h-screen">
-      <div className="overflow-auto p-4 lg:p-8">
-        <div className="max-w-7xl mx-auto space-y-8 pb-8">
+    <div className="space-y-8 pb-8">
           {/* Header Section */}
           <div className="space-y-2">
             <div>
@@ -154,6 +156,16 @@ const PetugasDashboard = () => {
                 </span>
               </p>
             </div>
+            {/* Tombol refresh manual */}
+            <button
+              onClick={() => loadData(true)}
+              disabled={refreshing}
+              title="Refresh data"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-800 border border-gray-700 text-gray-400 hover:text-white hover:border-gray-600 transition-all text-sm disabled:opacity-50"
+            >
+              <RefreshCw size={15} className={refreshing ? "animate-spin" : ""} />
+              <span className="hidden sm:inline">{refreshing ? "Memuat..." : "Refresh"}</span>
+            </button>
           </div>
 
           {/* Active Session Alert */}
@@ -187,21 +199,21 @@ const PetugasDashboard = () => {
           {/* Quick Actions */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <ActionCard
-              icon={Play}
+              icon={Truck}
               label="Mulai Tracking"
               description="Mulai sesi tracking baru untuk memantau kondisi jalan"
               onClick={() => navigate("/petugas/tracking")}
               color="blue"
             />
             <ActionCard
-              icon={MapPin}
+              icon={Map}
               label="Lihat Peta"
               description="Peta visualisasi kerusakan jalan di area Anda"
               onClick={() => navigate("/petugas/peta")}
               color="green"
             />
             <ActionCard
-              icon={History}
+              icon={ClipboardList}
               label="Riwayat Tracking"
               description="Lihat semua riwayat tracking Anda sebelumnya"
               onClick={() => navigate("/petugas/riwayat")}
@@ -219,13 +231,13 @@ const PetugasDashboard = () => {
                 color="blue"
               />
               <StatCard
-                icon={AlertTriangle}
+                icon={ShieldAlert}
                 label="Total Kerusakan Dilaporkan"
                 value={myStats.totalDamages}
                 color="red"
               />
               <StatCard
-                icon={CheckCircle}
+                icon={CheckCheck}
                 label="Sesi Selesai"
                 value={myStats.completedSessions}
                 color="green"
@@ -245,13 +257,15 @@ const PetugasDashboard = () => {
                 </p>
               </div>
               <div className="p-3 bg-purple-500/20 rounded-lg">
-                <Route size={20} className="text-purple-400" />
+                <Footprints size={20} className="text-purple-400" />
               </div>
             </div>
 
             {recentSessions.length === 0 ? (
               <div className="text-center py-12">
-                <Route className="w-14 h-14 text-gray-600 mx-auto mb-4" />
+                <div className="w-16 h-16 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center mx-auto mb-3">
+                  <Footprints className="w-8 h-8 text-gray-500" />
+                </div>
                 <p className="text-gray-400 font-medium">
                   Belum ada riwayat tracking
                 </p>
@@ -275,7 +289,7 @@ const PetugasDashboard = () => {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-lg flex items-center justify-center">
-                          <Route className="w-6 h-6 text-blue-400" />
+                          <Footprints className="w-6 h-6 text-blue-400" />
                         </div>
                         <div>
                           <p className="font-semibold text-white">
@@ -331,8 +345,6 @@ const PetugasDashboard = () => {
               </div>
             )}
           </div>
-        </div>
-      </div>
     </div>
   );
 };
