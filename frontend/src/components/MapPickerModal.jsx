@@ -374,6 +374,24 @@ const MapPickerModal = ({ isOpen, onClose, onConfirm, currentLocation = null }) 
     return mins < 60 ? `${mins} menit` : `${Math.floor(mins / 60)} jam ${mins % 60} menit`;
   };
 
+  // Hitung jarak lurus (Haversine) antara 2 titik koordinat {lat,lng} dalam meter
+  const haversineDistance = (a, b) => {
+    if (!a || !b || a.lat == null || b.lat == null) return null;
+    const R = 6371000; // radius bumi (meter)
+    const dLat = (b.lat - a.lat) * Math.PI / 180;
+    const dLng = (b.lng - a.lng) * Math.PI / 180;
+    const lat1 = a.lat * Math.PI / 180;
+    const lat2 = b.lat * Math.PI / 180;
+    const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+    return Math.round(2 * R * Math.asin(Math.sqrt(h)));
+  };
+
+  // Format jarak pendek: meter -> "350 m", "1.2 km"
+  const formatDistanceShort = (meters) => {
+    if (meters == null) return '';
+    return meters >= 1000 ? `${(meters / 1000).toFixed(1)} km` : `${meters} m`;
+  };
+
   if (!isOpen) return null;
 
   const stepInfo = {
@@ -610,68 +628,86 @@ const MapPickerModal = ({ isOpen, onClose, onConfirm, currentLocation = null }) 
         </div>
 
         {/* Footer actions */}
-        <div style={{ padding: '14px 20px', borderTop: isDark ? '1px solid #2d2d44' : '1px solid #e2e8f0', display: 'flex', gap: '10px', justifyContent: 'flex-end', background: isDark ? '#0f0f23' : '#f8fafc' }}>
-          {/* Info koordinat */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px', justifyContent: 'center' }}>
+        <div style={{ padding: '14px 20px', borderTop: isDark ? '1px solid #2d2d44' : '1px solid #e2e8f0', background: isDark ? '#0f0f23' : '#f8fafc', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {/* Info posisi & titik A/B — layout vertikal agar tidak terpotong di mobile */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {/* Posisi petugas */}
             {currentLocation?.lat && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3b82f6', flexShrink: 0 }} />
-                <span style={{ fontSize: '11px', color: '#60a5fa' }}>
-                  Posisi saya: {currentLocation.lat.toFixed(5)}, {currentLocation.lng.toFixed(5)}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                <div style={{ width: '9px', height: '9px', borderRadius: '50%', background: '#3b82f6', flexShrink: 0 }} />
+                <span style={{ fontSize: '12px', color: '#60a5fa' }}>
+                  Posisi saya:{' '}
+                  <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>
+                    {currentLocation.lat.toFixed(5)}, {currentLocation.lng.toFixed(5)}
+                  </span>
                 </span>
               </div>
             )}
-            <div style={{ display: 'flex', gap: '12px' }}>
-              {startPoint && (
-                <span style={{ fontSize: '11px', color: '#22c55e' }}>
-                  A: {startPoint.lat.toFixed(5)}, {startPoint.lng.toFixed(5)}
+
+            {/* Titik A */}
+            {startPoint && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#22c55e', color: 'white', fontSize: '10px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>A</div>
+                <span style={{ fontSize: '12px', color: '#22c55e' }}>
+                  {currentLocation?.lat
+                    ? <>{formatDistanceShort(haversineDistance(currentLocation, startPoint))} dari posisi saya</>
+                    : <><span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{startPoint.lat.toFixed(5)}, {startPoint.lng.toFixed(5)}</span></>}
                 </span>
-              )}
-              {endPoint && (
-                <span style={{ fontSize: '11px', color: '#ef4444' }}>
-                  B: {endPoint.lat.toFixed(5)}, {endPoint.lng.toFixed(5)}
+              </div>
+            )}
+
+            {/* Titik B */}
+            {endPoint && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#ef4444', color: 'white', fontSize: '10px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>B</div>
+                <span style={{ fontSize: '12px', color: '#ef4444' }}>
+                  {currentLocation?.lat
+                    ? <>{formatDistanceShort(haversineDistance(currentLocation, endPoint))} dari posisi saya</>
+                    : <><span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{endPoint.lat.toFixed(5)}, {endPoint.lng.toFixed(5)}</span></>}
                 </span>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
-          <button
-            onClick={handleReset}
-            style={{
-              padding: '8px 16px', borderRadius: '6px',
-              background: 'transparent', border: isDark ? '1px solid #4b5563' : '1px solid #cbd5e1',
-              color: isDark ? '#9ca3af' : '#64748b', cursor: 'pointer', fontSize: '13px',
-            }}
-          >
-            Reset
-          </button>
+          {/* Tombol aksi — baris terpisah */}
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+            <button
+              onClick={handleReset}
+              style={{
+                padding: '8px 14px', borderRadius: '6px',
+                background: 'transparent', border: isDark ? '1px solid #4b5563' : '1px solid #cbd5e1',
+                color: isDark ? '#9ca3af' : '#64748b', cursor: 'pointer', fontSize: '13px',
+              }}
+            >
+              Reset
+            </button>
 
-          <button
-            onClick={onClose}
-            style={{
-              padding: '8px 16px', borderRadius: '6px',
-              background: 'transparent', border: isDark ? '1px solid #4b5563' : '1px solid #cbd5e1',
-              color: isDark ? '#9ca3af' : '#64748b', cursor: 'pointer', fontSize: '13px',
-            }}
-          >
-            Batal
-          </button>
+            <button
+              onClick={onClose}
+              style={{
+                padding: '8px 14px', borderRadius: '6px',
+                background: 'transparent', border: isDark ? '1px solid #4b5563' : '1px solid #cbd5e1',
+                color: isDark ? '#9ca3af' : '#64748b', cursor: 'pointer', fontSize: '13px',
+              }}
+            >
+              Batal
+            </button>
 
-          <button
-            onClick={handleConfirm}
-            disabled={!startPoint || !endPoint || routeLoading}
-            style={{
-              padding: '8px 20px', borderRadius: '6px',
-              background: (startPoint && endPoint && !routeLoading) ? '#3b82f6' : (isDark ? '#374151' : '#d1d5db'),
-              border: 'none',
-              color: (startPoint && endPoint && !routeLoading) ? 'white' : (isDark ? '#6b7280' : '#94a3b8'),
-              cursor: (startPoint && endPoint && !routeLoading) ? 'pointer' : 'not-allowed',
-              fontSize: '13px', fontWeight: '600',
-            }}
-          >
-            {routeLoading ? 'Menghitung...' : 'Mulai Tracking'}
-          </button>
+            <button
+              onClick={handleConfirm}
+              disabled={!startPoint || !endPoint || routeLoading}
+              style={{
+                padding: '8px 18px', borderRadius: '6px',
+                background: (startPoint && endPoint && !routeLoading) ? '#3b82f6' : (isDark ? '#374151' : '#d1d5db'),
+                border: 'none',
+                color: (startPoint && endPoint && !routeLoading) ? 'white' : (isDark ? '#6b7280' : '#94a3b8'),
+                cursor: (startPoint && endPoint && !routeLoading) ? 'pointer' : 'not-allowed',
+                fontSize: '13px', fontWeight: '600',
+              }}
+            >
+              {routeLoading ? 'Menghitung...' : 'Mulai Tracking'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

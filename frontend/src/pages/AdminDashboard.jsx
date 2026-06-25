@@ -8,12 +8,13 @@ import {
   BarElement,
   PointElement,
   LineElement,
+  RadialLinearScale,
   Title,
   Tooltip,
   Legend,
   Filler,
 } from "chart.js";
-import { Pie, Bar, Line } from "react-chartjs-2";
+import { Bar, Line, Doughnut, Radar } from "react-chartjs-2";
 import { roadDamageService, trackingService } from "../services/api";
 import { useTheme } from "../contexts/ThemeContext";
 import { useToast } from "../contexts/ToastContext";
@@ -36,6 +37,7 @@ import {
   Hourglass,
   BarChart2,
   RefreshCw,
+  PieChart as PieChartIcon,
 } from "lucide-react";
 
 ChartJS.register(
@@ -45,6 +47,7 @@ ChartJS.register(
   BarElement,
   PointElement,
   LineElement,
+  RadialLinearScale,
   Title,
   Tooltip,
   Legend,
@@ -91,6 +94,26 @@ const StatCard = ({ icon: Icon, label, value, trend, trendUp, color }) => {
   );
 };
 
+const ChartSwitcher = ({ options, active, onChange }) => {
+  return (
+    <div className="flex gap-1 bg-gray-700/50 rounded-lg p-1">
+      {options.map((opt) => (
+        <button
+          key={opt.value}
+          onClick={() => onChange(opt.value)}
+          className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+            active === opt.value
+              ? "bg-blue-600 text-white shadow-sm"
+              : "text-gray-400 hover:text-gray-200 hover:bg-gray-600/50"
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+};
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { isDark } = useTheme();
@@ -100,6 +123,8 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState("week");
+  const [chartTypeDamage, setChartTypeDamage] = useState("doughnut");
+  const [chartTypeSeverity, setChartTypeSeverity] = useState("bar");
 
   useEffect(() => {
     loadData();
@@ -276,6 +301,86 @@ const AdminDashboard = () => {
     ],
   };
 
+  const severityLineData = {
+    labels: safeBySeverity.map((item) => item.severity.toUpperCase()),
+    datasets: [
+      {
+        label: "Jumlah",
+        data: safeBySeverity.map((item) => item.count),
+        borderColor: "rgba(243, 156, 18, 1)",
+        backgroundColor: "rgba(243, 156, 18, 0.1)",
+        borderWidth: 3,
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: [
+          "rgba(39, 174, 96, 1)",
+          "rgba(243, 156, 18, 1)",
+          "rgba(231, 76, 60, 1)",
+        ],
+        pointBorderColor: "#fff",
+        pointBorderWidth: 2,
+        pointRadius: 7,
+        pointHoverRadius: 10,
+      },
+    ],
+  };
+
+  const severityRadarData = {
+    labels: safeBySeverity.map((item) => item.severity.toUpperCase()),
+    datasets: [
+      {
+        label: "Jumlah",
+        data: safeBySeverity.map((item) => item.count),
+        backgroundColor: "rgba(243, 156, 18, 0.2)",
+        borderColor: "rgba(243, 156, 18, 1)",
+        borderWidth: 2,
+        pointBackgroundColor: [
+          "rgba(39, 174, 96, 1)",
+          "rgba(243, 156, 18, 1)",
+          "rgba(231, 76, 60, 1)",
+        ],
+        pointBorderColor: "#fff",
+        pointBorderWidth: 2,
+        pointRadius: 6,
+      },
+    ],
+  };
+
+  const pendingCount =
+    safeByStatus.find((s) => s.status === "pending")?.count || 0;
+  const verifiedCount =
+    safeByStatus.find((s) => s.status === "verified")?.count || 0;
+  const repairedCount =
+    safeByStatus.find((s) => s.status === "repaired")?.count || 0;
+
+  const statusData = {
+    labels: [
+      pendingCount > 0 ? "Pending" : null,
+      verifiedCount > 0 ? "Verified" : null,
+      repairedCount > 0 ? "Repaired" : null,
+    ].filter(Boolean),
+    datasets: [
+      {
+        label: "Jumlah",
+        data: [pendingCount, verifiedCount, repairedCount].filter(
+          (v) => v > 0,
+        ),
+        backgroundColor: [
+          "rgba(231, 76, 60, 0.8)",
+          "rgba(243, 156, 18, 0.8)",
+          "rgba(39, 174, 96, 0.8)",
+        ],
+        borderColor: [
+          "rgba(231, 76, 60, 1)",
+          "rgba(243, 156, 18, 1)",
+          "rgba(39, 174, 96, 1)",
+        ],
+        borderWidth: 2,
+        borderRadius: 6,
+      },
+    ],
+  };
+
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -319,12 +424,97 @@ const AdminDashboard = () => {
     },
   };
 
-  const pendingCount =
-    safeByStatus.find((s) => s.status === "pending")?.count || 0;
-  const verifiedCount =
-    safeByStatus.find((s) => s.status === "verified")?.count || 0;
-  const repairedCount =
-    safeByStatus.find((s) => s.status === "repaired")?.count || 0;
+  const lineOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: "bottom",
+        labels: {
+          color: isDark ? "#eee" : "#374151",
+          font: { size: 13, weight: "500" },
+          padding: 15,
+          usePointStyle: true,
+        },
+      },
+    },
+    scales: {
+      y: {
+        ticks: {
+          color: isDark ? "#999" : "#6b7280",
+          stepSize: 1,
+        },
+        grid: { color: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.06)", drawBorder: false },
+        beginAtZero: true,
+      },
+      x: {
+        ticks: { color: isDark ? "#999" : "#6b7280" },
+        grid: { color: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.06)", drawBorder: false },
+      },
+    },
+  };
+
+  const radarOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: "bottom",
+        labels: {
+          color: isDark ? "#eee" : "#374151",
+          font: { size: 13, weight: "500" },
+          padding: 15,
+          usePointStyle: true,
+        },
+      },
+    },
+    scales: {
+      r: {
+        ticks: {
+          color: isDark ? "#999" : "#6b7280",
+          backdropColor: "transparent",
+          stepSize: 1,
+        },
+        grid: { color: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)" },
+        angleLines: { color: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)" },
+        pointLabels: {
+          color: isDark ? "#ccc" : "#374151",
+          font: { size: 13, weight: "600" },
+        },
+        beginAtZero: true,
+      },
+    },
+  };
+
+  const hBarOptions = {
+    indexAxis: "y",
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        callbacks: {
+          label: (ctx) => ` ${ctx.parsed.x} kerusakan`,
+        },
+      },
+    },
+    scales: {
+      x: {
+        ticks: {
+          color: isDark ? "#999" : "#6b7280",
+          stepSize: 1,
+        },
+        grid: { color: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.06)", drawBorder: false },
+        beginAtZero: true,
+      },
+      y: {
+        ticks: { color: isDark ? "#ddd" : "#374151", font: { size: 14, weight: "600" } },
+        grid: { display: false },
+      },
+    },
+  };
 
   // Get most common damage type - safe guard untuk array kosong
   const mostCommonDamage =
@@ -404,7 +594,7 @@ const AdminDashboard = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Damage Type Chart */}
             <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-8 border border-gray-700 hover:border-gray-600 transition">
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-xl font-bold text-white">
                     Grafik Jenis Kerusakan
@@ -417,8 +607,23 @@ const AdminDashboard = () => {
                   <BarChart2 size={20} className="text-blue-400" />
                 </div>
               </div>
+              <div className="flex justify-center mb-4">
+                <ChartSwitcher
+                  active={chartTypeDamage}
+                  onChange={setChartTypeDamage}
+                  options={[
+                    { value: "doughnut", label: "Donat" },
+                    { value: "bar", label: "Batang" },
+                  ]}
+                />
+              </div>
               <div className="h-72">
-                <Pie data={damageTypeData} options={pieOptions} />
+                {chartTypeDamage === "doughnut" && (
+                  <Doughnut data={damageTypeData} options={pieOptions} />
+                )}
+                {chartTypeDamage === "bar" && (
+                  <Bar data={damageTypeData} options={chartOptions} />
+                )}
               </div>
             </div>
 
@@ -519,7 +724,7 @@ const AdminDashboard = () => {
 
             {/* Severity Chart */}
             <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-8 border border-gray-700 hover:border-gray-600 transition lg:col-span-3">
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-xl font-bold text-white">
                     Tingkat Keparahan
@@ -528,15 +733,86 @@ const AdminDashboard = () => {
                     Distribusi severity kerusakan jalan
                   </p>
                 </div>
-                <div className="p-3 bg-orange-500/20 rounded-lg">
-                  <AlertCircle size={20} className="text-orange-400" />
+                <div className="flex items-center gap-3">
+                  <ChartSwitcher
+                    active={chartTypeSeverity}
+                    onChange={setChartTypeSeverity}
+                    options={[
+                      { value: "bar", label: "Batang" },
+                      { value: "line", label: "Garis" },
+                      { value: "radar", label: "Radar" },
+                    ]}
+                  />
+                  <div className="p-3 bg-orange-500/20 rounded-lg">
+                    <AlertCircle size={20} className="text-orange-400" />
+                  </div>
                 </div>
               </div>
               <div className="h-72">
-                <Bar data={severityData} options={chartOptions} />
+                {chartTypeSeverity === "bar" && (
+                  <Bar data={severityData} options={chartOptions} />
+                )}
+                {chartTypeSeverity === "line" && (
+                  <Line data={severityLineData} options={lineOptions} />
+                )}
+                {chartTypeSeverity === "radar" && (
+                  <Radar data={severityRadarData} options={radarOptions} />
+                )}
               </div>
             </div>
-          </div>
+            </div>
+
+            {/* Row 3: Tracking Activity + Status Chart */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Tracking Activity Line Chart */}
+              <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-8 border border-gray-700 hover:border-gray-600 transition lg:col-span-2">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-xl font-bold text-white">
+                      Aktivitas Tracking
+                    </h3>
+                    <p className="text-gray-400 text-sm mt-1">
+                      Tren tracking {selectedPeriod === "week" ? "minggu" : "bulan"} ini
+                    </p>
+                  </div>
+                  <div className="p-3 bg-purple-500/20 rounded-lg">
+                    <Activity size={20} className="text-purple-400" />
+                  </div>
+                </div>
+                <div className="h-72">
+                  {recentTracking.length > 0 ? (
+                    <Line
+                      data={generateTrackingActivityData()}
+                      options={lineOptions}
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <p className="text-gray-500">Belum ada data tracking</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Status Horizontal Bar Chart */}
+              <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-8 border border-gray-700 hover:border-gray-600 transition">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-xl font-bold text-white">
+                      Status Kerusakan
+                    </h3>
+                    <p className="text-gray-400 text-sm mt-1">
+                      Distribusi status
+                    </p>
+                  </div>
+                  <div className="p-3 bg-cyan-500/20 rounded-lg">
+                    <PieChartIcon size={20} className="text-cyan-400" />
+                  </div>
+                </div>
+                <div className="h-72">
+                  <Bar data={statusData} options={hBarOptions} />
+                </div>
+              </div>
+            </div>
 
           {/* Status Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
