@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useLayoutEffect,
 } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import RoadDamageMap, {
   KECAMATAN_KUBU_RAYA,
 } from "../components/RoadDamageMap";
@@ -587,6 +588,18 @@ const LaporPerbaikanModal = ({ marker, onClose, onSubmit, submitting }) => {
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          {marker.status === 'verified' && marker.notes && marker.notes.includes("Ditolak") && (
+            <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 flex gap-3 items-start">
+              <div className="mt-0.5">
+                <span className="w-4 h-4 inline-flex items-center justify-center bg-red-500 text-white rounded-full text-[10px] font-bold">!</span>
+              </div>
+              <div>
+                <p className="text-red-400 text-xs font-bold uppercase tracking-wider mb-1">Laporan Sebelumnya Ditolak Admin</p>
+                <p className="text-red-300/80 text-sm">{marker.notes.replace("Ditolak: ", "")}</p>
+              </div>
+            </div>
+          )}
+
           {marker.image_url && (
             <div>
               <p className="text-xs text-gray-400 mb-2">Foto kerusakan sebelumnya</p>
@@ -622,6 +635,8 @@ const LaporPerbaikanModal = ({ marker, onClose, onSubmit, submitting }) => {
 
 const MapPage = () => {
   const toast = useToast();
+  const location = useLocation();
+  const navigate = useNavigate();
   const { user, isAdmin, isReparasi } = useAuth();
   // Simpan isAdmin di ref agar refreshData selalu pakai versi terbaru
   // tanpa perlu isAdmin masuk ke deps array (isAdmin berubah tiap render)
@@ -649,6 +664,7 @@ const MapPage = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [repairMarker, setRepairMarker] = useState(null);
   const [repairSubmitting, setRepairSubmitting] = useState(false);
+  const [focusMarkerLoaded, setFocusMarkerLoaded] = useState(false);
   const pollRef = useRef(null);
 
   // ── Geolocation: lokasi user saat ini ──
@@ -730,6 +746,20 @@ const MapPage = () => {
     }
   }, [liveTracking.length]);
 
+  // Auto-open form perbaikan dan fokus ke marker yang ditolak
+  useEffect(() => {
+    if (location.state?.focusId && markers.length > 0 && !focusMarkerLoaded) {
+      const targetId = String(location.state.focusId);
+      const targetMarker = markers.find(m => String(m.id) === targetId);
+      if (targetMarker) {
+        if (isReparasi()) {
+          setRepairMarker(targetMarker);
+        }
+        setFocusMarkerLoaded(true);
+      }
+    }
+  }, [location.state, markers, focusMarkerLoaded, isReparasi]);
+
   const refreshData = useCallback(async () => {
     if (refreshing) return;
     setRefreshing(true);
@@ -806,7 +836,7 @@ const MapPage = () => {
     setRepairSubmitting(true);
     try {
       const formData = new FormData();
-      formData.append("repair_photo", photo);
+      formData.append("repair_photo", photo, photo.name || "repair.jpg");
       formData.append("repair_notes", notes || "");
       await roadDamageService.laporPerbaikan(repairMarker.id, formData);
       toast.success("Laporan perbaikan berhasil dikirim.");
@@ -1039,6 +1069,7 @@ const MapPage = () => {
                 userLocation={userLocation}
                 currentUserId={user?.id}
                 onRepairClick={isReparasi() ? setRepairMarker : null}
+                focusMarkerId={location.state?.focusId || null}
               />
             )}
 

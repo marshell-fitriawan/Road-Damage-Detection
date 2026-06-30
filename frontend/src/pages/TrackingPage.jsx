@@ -1117,26 +1117,41 @@ const TrackingPage = () => {
               {/* Route info or placeholder */}
               {routeInfo ? (
                 <div className="bg-[#0f1520] rounded-lg p-3 flex items-start justify-between">
-                  <div className="space-y-1">
+                  <div className="w-full">
                     {routeInfo.ruasJalanName && (
-                      <p className="text-gray-100 text-sm font-semibold">
+                      <p className="text-gray-100 text-sm font-semibold mb-3 border-b border-gray-700/50 pb-2">
+                        <MapPin className="w-4 h-4 inline mr-1.5 text-blue-400" />
                         {routeInfo.ruasJalanName}
                       </p>
                     )}
-                    {routeInfo.startPoint && (
-                      <p className="text-xs text-gray-500">
-                        <span className="text-green-400 font-medium">A</span>{" "}
-                        {routeInfo.startPoint.lat.toFixed(5)},{" "}
-                        {routeInfo.startPoint.lng.toFixed(5)}
-                      </p>
-                    )}
-                    {routeInfo.endPoint && (
-                      <p className="text-xs text-gray-500">
-                        <span className="text-red-400 font-medium">B</span>{" "}
-                        {routeInfo.endPoint.lat.toFixed(5)},{" "}
-                        {routeInfo.endPoint.lng.toFixed(5)}
-                      </p>
-                    )}
+                    <div className="relative pl-5 space-y-4">
+                      {/* Timeline Vertical Line */}
+                      <div className="absolute left-[7px] top-2 bottom-3 w-px bg-gray-700"></div>
+
+                      {routeInfo.startPoint && (
+                        <div className="relative">
+                          <div className="absolute -left-[21.5px] top-1.5 w-2 h-2 rounded-full bg-green-500 ring-4 ring-[#0f1520] z-10"></div>
+                          <p className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold mb-0.5">
+                            Titik Awal
+                          </p>
+                          <p className="text-xs text-gray-300 font-mono">
+                            {routeInfo.startPoint.lat.toFixed(5)}, {routeInfo.startPoint.lng.toFixed(5)}
+                          </p>
+                        </div>
+                      )}
+
+                      {routeInfo.endPoint && (
+                        <div className="relative">
+                          <div className="absolute -left-[21.5px] top-1.5 w-2 h-2 rounded-full bg-red-500 ring-4 ring-[#0f1520] z-10"></div>
+                          <p className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold mb-0.5">
+                            Titik Akhir
+                          </p>
+                          <p className="text-xs text-gray-300 font-mono">
+                            {routeInfo.endPoint.lat.toFixed(5)}, {routeInfo.endPoint.lng.toFixed(5)}
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <ChevronRight className="w-4 h-4 text-gray-600 mt-0.5" />
                 </div>

@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Home, AlertTriangle, ArrowLeft } from "lucide-react";
+import { Home, MapPinOff, ArrowLeft } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
 const NotFoundPage = () => {
@@ -22,10 +22,10 @@ const NotFoundPage = () => {
         {/* Animated 404 */}
         <div className="relative mb-8">
           <p
-            className="text-[120px] font-black leading-none select-none"
+            className="text-[120px] font-black leading-none select-none drop-shadow-2xl opacity-80"
             style={{
               background:
-                "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)",
+                "linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #38bdf8 100%)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
               backgroundClip: "text",
@@ -34,14 +34,14 @@ const NotFoundPage = () => {
             404
           </p>
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-24 h-24 rounded-full border border-red-500/20 bg-red-500/10 flex items-center justify-center">
-              <AlertTriangle className="w-10 h-10 text-red-400" />
+            <div className="w-24 h-24 rounded-full border border-blue-500/20 bg-blue-500/10 backdrop-blur-sm flex items-center justify-center shadow-[0_0_30px_rgba(59,130,246,0.15)]">
+              <MapPinOff className="w-10 h-10 text-blue-400" />
             </div>
           </div>
         </div>
 
         <h1 className="text-2xl font-bold text-white mb-3">
-          Halaman Tidak Ditemukan
+          Jalur Tidak Ditemukan
         </h1>
         <p className="text-gray-400 text-sm leading-relaxed mb-8">
           Halaman yang Anda cari tidak ada atau sudah dipindahkan. Pastikan URL

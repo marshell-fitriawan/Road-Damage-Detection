@@ -833,6 +833,46 @@ const UserLocationMarker = ({ position, accuracy }) => {
   );
 };
 
+// ============ KOMPONEN FOKUS MARKER ============
+const FocusMarkerHandler = ({ focusMarkerId, markers, routePaths, liveTracking }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (!focusMarkerId) return;
+    const targetId = String(focusMarkerId);
+    
+    // Cari marker di semua sumber data
+    let target = markers.find(m => String(m.id) === targetId);
+    
+    if (!target) {
+      for (const route of routePaths) {
+        if (route.damages) {
+          target = route.damages.find(m => String(m.id) === targetId);
+          if (target) break;
+        }
+      }
+    }
+    
+    if (!target) {
+      for (const session of liveTracking) {
+        if (session.damages) {
+          target = session.damages.find(m => String(m.id) === targetId);
+          if (target) break;
+        }
+      }
+    }
+
+    if (target && target.latitude && target.longitude) {
+      // Zoom in ke marker dengan animasi
+      map.flyTo([target.latitude, target.longitude], 19, {
+        animate: true,
+        duration: 1.5
+      });
+    }
+  }, [focusMarkerId, markers, routePaths, liveTracking, map]);
+
+  return null;
+};
+
 // ============ KOMPONEN UTAMA PETA ============
 const RoadDamageMap = ({
   markers = [],
@@ -846,6 +886,7 @@ const RoadDamageMap = ({
   userLocation = null,   // { lat, lng, accuracy }
   onRepairClick = null,
   currentUserId = null,
+  focusMarkerId = null,
 }) => {
   const petugasColors = ['#3b82f6', '#ef4444', '#22c55e', '#eab308', '#8b5cf6', '#f97316', '#ec4899'];
   const theme = THEMES[mapMode] || THEMES.dark;
@@ -1365,6 +1406,16 @@ const RoadDamageMap = ({
           </React.Fragment>
         );
       })}
+
+      {/* ====== FOKUS KE MARKER SPESIFIK (JIKA ADA) ====== */}
+      {focusMarkerId && (
+        <FocusMarkerHandler
+          focusMarkerId={focusMarkerId}
+          markers={markers}
+          routePaths={routePaths}
+          liveTracking={liveTracking}
+        />
+      )}
 
       {/* ====== LOKASI USER (Saya) ====== */}
       {userLocation && (

@@ -148,6 +148,14 @@ const AppContent = () => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
+  // Smooth scroll: dinonaktifkan di peta & halaman tracking GPS
+  const LENIS_EXCLUDED = [
+    "/admin/peta", "/petugas/peta", "/reparasi/peta",
+    "/petugas/tracking",
+  ];
+  const lenisEnabled = !LENIS_EXCLUDED.some((r) => location.pathname === r);
+  useLenis(lenisEnabled);
+
   if (loading) {
     return (
       <div
@@ -187,14 +195,6 @@ const AppContent = () => {
     "/reparasi/pengaturan",
     "/reparasi/bantuan",
   ].includes(location.pathname);
-
-  // Smooth scroll: dinonaktifkan di peta & halaman tracking GPS
-  const LENIS_EXCLUDED = [
-    "/admin/peta", "/petugas/peta", "/reparasi/peta",
-    "/petugas/tracking",
-  ];
-  const lenisEnabled = !LENIS_EXCLUDED.some((r) => location.pathname === r);
-  useLenis(lenisEnabled);
 
   const routes = (
     <Routes>

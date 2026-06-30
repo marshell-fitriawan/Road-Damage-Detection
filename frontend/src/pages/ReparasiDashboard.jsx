@@ -23,6 +23,7 @@ const ReparasiDashboard = () => {
 
   const [stats, setStats] = useState({ verified: 0, repaired: 0 });
   const [repairedList, setRepairedList] = useState([]);
+  const [rejectedList, setRejectedList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -41,8 +42,13 @@ const ReparasiDashboard = () => {
       ]);
       const verifiedMarkers = verifiedRes.markers || [];
       const repairedMarkers = repairedRes.markers || [];
+      
+      const rejected = verifiedMarkers.filter(m => m.notes && m.notes.startsWith("Ditolak:"));
+      
       setStats({ verified: verifiedMarkers.length, repaired: repairedMarkers.length });
       setRepairedList(repairedMarkers.slice(0, 8));
+      setRejectedList(rejected);
+      
       if (showToast) toast.success("Data berhasil diperbarui");
     } catch (err) {
       console.error(err);
@@ -60,9 +66,9 @@ const ReparasiDashboard = () => {
     loadData();
   }, [loadData]);
 
-  // Auto-refresh setiap 30 detik
+  // Auto-refresh setiap 15 detik
   useEffect(() => {
-    const interval = setInterval(() => loadData(), 30000);
+    const interval = setInterval(() => loadData(), 15000);
     return () => clearInterval(interval);
   }, [loadData]);
 
@@ -84,7 +90,7 @@ const ReparasiDashboard = () => {
       } catch (_) {}
     };
     checkNewVerified();
-    const interval = setInterval(checkNewVerified, 30000);
+    const interval = setInterval(checkNewVerified, 15000);
     return () => clearInterval(interval);
   }, [loadData, toast]);
 
@@ -120,6 +126,42 @@ const ReparasiDashboard = () => {
             {refreshing ? "Memuat..." : "Refresh"}
           </button>
         </div>
+
+        {/* Rejected Alert Banner */}
+        {rejectedList.length > 0 && (
+          <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-5 flex flex-col gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-red-500/20 rounded-xl">
+                <ClipboardList className="w-6 h-6 text-red-500" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-red-400">Laporan Ditolak ({rejectedList.length})</h3>
+                <p className={`text-sm ${isDark ? "text-red-300/80" : "text-red-700/80"}`}>
+                  Admin telah menolak laporan perbaikan Anda. Silakan perbaiki kembali berdasarkan catatan berikut:
+                </p>
+              </div>
+            </div>
+            
+            <div className="space-y-3 mt-1">
+              {rejectedList.map((reject) => (
+                <div key={reject.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-red-900/20 border border-red-500/20">
+                  <div className="flex-1">
+                    <p className="font-bold text-red-400 text-sm mb-1">{reject.damage_type} • {reject.ruas_jalan || "Ruas Jalan Tidak Diketahui"}</p>
+                    <p className={`text-sm italic ${isDark ? "text-red-300/90" : "text-red-700/90"}`}>
+                      "{reject.notes ? reject.notes.replace("Ditolak: ", "") : "Tanpa alasan"}"
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => navigate("/reparasi/peta", { state: { focusId: reject.id } })}
+                    className="w-full sm:w-auto px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-sm rounded-lg font-semibold transition-colors flex-shrink-0"
+                  >
+                    Perbaiki Sekarang
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Stat Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

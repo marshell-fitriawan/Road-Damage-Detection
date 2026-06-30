@@ -179,12 +179,20 @@ class RoadDamageController extends Controller
         $photoName = 'repair_' . Str::uuid() . '.' . $photo->getClientOriginalExtension();
         $photoPath = $photo->storeAs('uploads/repair_photos', $photoName, 'public');
 
+        if (!$photoPath) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menyimpan foto perbaikan ke server.',
+            ], 500);
+        }
+
         $damage->update([
             'status'            => 'waiting_validation',
             'repair_photo_path' => $photoPath,
             'repair_notes'      => $request->repair_notes,
             'repaired_by'       => $user->id,
             'repaired_at'       => now(),
+            'notes'             => null,
         ]);
 
         return response()->json([
@@ -358,7 +366,7 @@ class RoadDamageController extends Controller
             'id', 'damage_type', 'latitude', 'longitude',
             'severity', 'status', 'confidence', 'area_cm2',
             'created_at', 'image_path', 'tracking_session_id',
-            'repair_photo_path', 'repair_notes', 'repaired_by', 'repaired_at',
+            'repair_photo_path', 'repair_notes', 'repaired_by', 'repaired_at', 'notes',
         ]);
 
         return response()->json([
@@ -384,6 +392,7 @@ class RoadDamageController extends Controller
                     'repair_notes'     => $damage->repair_notes,
                     'repaired_by_name' => $damage->repairedBy?->name ?? null,
                     'repaired_at'      => $damage->repaired_at?->format('Y-m-d H:i:s') ?? null,
+                    'notes'            => $damage->notes,
                 ];
             }),
         ]);
