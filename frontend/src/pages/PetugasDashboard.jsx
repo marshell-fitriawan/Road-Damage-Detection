@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { trackingService } from "../services/api";
 import { useToast } from "../contexts/ToastContext";
+import { useTheme } from "../contexts/ThemeContext";
 import {
   Truck,
   Map,
@@ -16,19 +17,20 @@ import {
   RefreshCw,
 } from "lucide-react";
 
-const StatCard = ({ icon: Icon, label, value, color }) => {
+const StatCard = ({ icon: Icon, label, value, color, isDark }) => {
+  const cardCls = isDark
+    ? "bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700 hover:border-gray-600"
+    : "bg-gradient-to-br from-white to-gray-50 border-gray-200 hover:border-gray-300";
+  const labelCls = isDark ? "text-gray-400" : "text-gray-500";
+  const valueCls = isDark ? "text-white" : "text-gray-900";
   return (
-    <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 hover:border-gray-600 transition-all group">
+    <div className={`rounded-2xl p-6 border transition-all group ${cardCls}`}>
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-gray-400 text-sm font-medium">{label}</p>
-          <h3 className="text-3xl font-bold text-white mt-2 group-hover:text-gray-100 transition">
-            {value}
-          </h3>
+          <p className={`text-sm font-medium ${labelCls}`}>{label}</p>
+          <h3 className={`text-3xl font-bold mt-2 ${valueCls}`}>{value}</h3>
         </div>
-        <div
-          className={`p-4 rounded-lg bg-gradient-to-br from-${color}-500/20 to-${color}-600/10`}
-        >
+        <div className={`p-4 rounded-lg bg-gradient-to-br from-${color}-500/20 to-${color}-600/10`}>
           <Icon size={28} className={`text-${color}-400`} />
         </div>
       </div>
@@ -36,23 +38,24 @@ const StatCard = ({ icon: Icon, label, value, color }) => {
   );
 };
 
-const ActionCard = ({ icon: Icon, label, description, onClick, color }) => {
+const ActionCard = ({ icon: Icon, label, description, onClick, color, isDark }) => {
+  const cardCls = isDark
+    ? "bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700 hover:border-gray-600"
+    : "bg-gradient-to-br from-white to-gray-50 border-gray-200 hover:border-gray-300";
+  const labelCls = isDark ? "text-white" : "text-gray-800";
+  const descCls = isDark ? "text-gray-400" : "text-gray-500";
   return (
     <button
       onClick={onClick}
-      className={`bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 hover:border-gray-600 transition text-left group hover:shadow-lg hover:shadow-${color}/20`}
+      className={`rounded-2xl p-6 border transition text-left group hover:shadow-lg hover:shadow-${color}/20 ${cardCls}`}
     >
       <div className="flex items-start gap-4">
-        <div
-          className={`p-3 rounded-lg bg-gradient-to-br from-${color}-500/20 to-${color}-600/10`}
-        >
+        <div className={`p-3 rounded-lg bg-gradient-to-br from-${color}-500/20 to-${color}-600/10`}>
           <Icon className={`w-6 h-6 text-${color}-400`} />
         </div>
         <div>
-          <p className="font-semibold text-white group-hover:text-gray-100 transition">
-            {label}
-          </p>
-          <p className="text-sm text-gray-400 mt-1">{description}</p>
+          <p className={`font-semibold transition ${labelCls}`}>{label}</p>
+          <p className={`text-sm mt-1 ${descCls}`}>{description}</p>
         </div>
       </div>
     </button>
@@ -63,11 +66,13 @@ const PetugasDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
+  const { isDark } = useTheme();
   const [activeSession, setActiveSession] = useState(null);
   const [recentSessions, setRecentSessions] = useState([]);
   const [myStats, setMyStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const prevDamageCount = useRef(null);
 
   useEffect(() => {
     loadData();
@@ -75,6 +80,26 @@ const PetugasDashboard = () => {
     const interval = setInterval(loadData, 60000);
     return () => clearInterval(interval);
   }, []);
+
+  // Polling notif: jika ada kerusakan baru terdeteksi di sesi aktif
+  useEffect(() => {
+    const checkNewDamage = async () => {
+      try {
+        const data = await trackingService.getActiveSession();
+        const session = data.session;
+        if (!session) { prevDamageCount.current = null; return; }
+        const count = session.road_damages_count || 0;
+        if (prevDamageCount.current !== null && count > prevDamageCount.current) {
+          const diff = count - prevDamageCount.current;
+          toast.info(`📍 ${diff} kerusakan baru terdeteksi di sesi tracking Anda!`, 6000);
+        }
+        prevDamageCount.current = count;
+      } catch (_) {}
+    };
+    checkNewDamage();
+    const interval = setInterval(checkNewDamage, 60000);
+    return () => clearInterval(interval);
+  }, [toast]);
 
   const loadData = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -204,6 +229,7 @@ const PetugasDashboard = () => {
               description="Mulai sesi tracking baru untuk memantau kondisi jalan"
               onClick={() => navigate("/petugas/tracking")}
               color="blue"
+              isDark={isDark}
             />
             <ActionCard
               icon={Map}
@@ -211,6 +237,7 @@ const PetugasDashboard = () => {
               description="Peta visualisasi kerusakan jalan di area Anda"
               onClick={() => navigate("/petugas/peta")}
               color="green"
+              isDark={isDark}
             />
             <ActionCard
               icon={ClipboardList}
@@ -218,6 +245,7 @@ const PetugasDashboard = () => {
               description="Lihat semua riwayat tracking Anda sebelumnya"
               onClick={() => navigate("/petugas/riwayat")}
               color="yellow"
+              isDark={isDark}
             />
           </div>
 
@@ -229,30 +257,37 @@ const PetugasDashboard = () => {
                 label="Total Sesi Tracking"
                 value={myStats.totalSessions}
                 color="blue"
+                isDark={isDark}
               />
               <StatCard
                 icon={ShieldAlert}
                 label="Total Kerusakan Dilaporkan"
                 value={myStats.totalDamages}
                 color="red"
+                isDark={isDark}
               />
               <StatCard
                 icon={CheckCheck}
                 label="Sesi Selesai"
                 value={myStats.completedSessions}
                 color="green"
+                isDark={isDark}
               />
             </div>
           )}
 
           {/* Recent Tracking History */}
-          <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-8 border border-gray-700 hover:border-gray-600 transition">
+          <div className={`rounded-2xl p-8 border transition ${
+            isDark
+              ? "bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700 hover:border-gray-600"
+              : "bg-white border-gray-200 hover:border-gray-300"
+          }`}>
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-xl font-bold text-white">
+                <h3 className={`text-xl font-bold ${isDark ? "text-white" : "text-gray-900"}`}>
                   Riwayat Tracking Terbaru
                 </h3>
-                <p className="text-gray-400 text-sm mt-1">
+                <p className={`text-sm mt-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
                   {recentSessions.length} tracking terakhir
                 </p>
               </div>

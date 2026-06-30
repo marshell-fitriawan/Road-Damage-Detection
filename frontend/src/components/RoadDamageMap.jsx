@@ -647,7 +647,7 @@ const createUserLocationIcon = () => L.divIcon({
 
 // ============ DAMAGE CLUSTER LAYER ============
 // Menggunakan leaflet.markercluster native untuk clustering marker kerusakan
-const DamageClusterLayer = ({ markers, getDamageColor, getSeveritySize, theme }) => {
+const DamageClusterLayer = ({ markers, getDamageColor, getSeveritySize, theme, onRepairClick, currentUserId }) => {
   const map = useMap();
   const clusterRef = useRef(null);
 
@@ -692,13 +692,19 @@ const DamageClusterLayer = ({ markers, getDamageColor, getSeveritySize, theme })
       if (!marker.lat || !marker.lng) return;
       const color = getDamageColor(marker.type);
       const radius = getSeveritySize(marker.severity);
+      const isOwn = marker.is_own || (currentUserId && marker.petugas_user_id === currentUserId);
+      const isOtherVerified = !isOwn && (marker.status === 'verified' || marker.status === 'repaired');
+      const borderColor = isOtherVerified ? '#22d3ee' : 'white';
+      const markerShadow = isOtherVerified
+        ? '0 0 0 3px rgba(34,211,238,0.35),0 2px 10px rgba(0,0,0,0.55)'
+        : '0 1px 6px rgba(0,0,0,0.5)';
       const icon = L.divIcon({
         html: `<div style="
           width:${radius * 2 + 4}px;height:${radius * 2 + 4}px;
           background:${color};
-          border:2px solid white;
+          border:${isOtherVerified ? 3 : 2}px solid ${borderColor};
           border-radius:50%;
-          box-shadow:0 1px 6px rgba(0,0,0,0.5);
+          box-shadow:${markerShadow};
           opacity:${theme.markerFillOpacity};
         "></div>`,
         className: '',
@@ -726,11 +732,20 @@ const DamageClusterLayer = ({ markers, getDamageColor, getSeveritySize, theme })
               <span style="color:#6b7280">Confidence</span>
               <span style="font-weight:600;color:${color}">${(marker.confidence * 100).toFixed(1)}%</span>
             </div>
-            ${marker.officer ? `<div style="display:flex;justify-content:space-between"><span style="color:#6b7280">Petugas</span><span style="font-weight:600">${marker.officer}</span></div>` : ''}
+            ${marker.petugas_name ? `<div style="display:flex;justify-content:space-between"><span style="color:#6b7280">Petugas</span><span style="font-weight:600">${marker.petugas_name}</span></div>` : ''}
+            ${isOtherVerified ? `<div style="margin-top:6px;padding:5px 7px;background:#ecfeff;color:#0891b2;border-radius:6px;font-size:11px;font-weight:700;text-align:center">Marker Petugas Lain</div>` : ''}
           </div>
+          ${onRepairClick && marker.status === 'verified' ? `<button class="repair-report-btn" data-marker-id="${marker.id}" style="width:100%;margin-top:8px;text-align:center;padding:7px;background:#16a34a;color:white;border:0;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">✓ Lapor Sudah Diperbaiki</button>` : ''}
           <a href="https://www.google.com/maps/search/?api=1&query=${marker.lat.toFixed(8)},${marker.lng.toFixed(8)}" target="_blank" style="display:block;margin-top:8px;text-align:center;padding:5px;background:#2563eb;color:white;border-radius:6px;font-size:11px;font-weight:600;text-decoration:none">🗺 Buka di Google Maps</a>
         </div>
       `, { maxWidth: 280, minWidth: 240 });
+
+      if (onRepairClick) {
+        m.on('popupopen', () => {
+          const btn = document.querySelector(`.repair-report-btn[data-marker-id="${marker.id}"]`);
+          if (btn) btn.onclick = () => onRepairClick(marker);
+        });
+      }
 
       cluster.addLayer(m);
     });
@@ -744,7 +759,7 @@ const DamageClusterLayer = ({ markers, getDamageColor, getSeveritySize, theme })
         clusterRef.current = null;
       }
     };
-  }, [map, markers, theme]);
+  }, [map, markers, theme, onRepairClick, currentUserId]);
 
   return null;
 };
@@ -829,6 +844,8 @@ const RoadDamageMap = ({
   onRuasListLoaded,
   filters = {},
   userLocation = null,   // { lat, lng, accuracy }
+  onRepairClick = null,
+  currentUserId = null,
 }) => {
   const petugasColors = ['#3b82f6', '#ef4444', '#22c55e', '#eab308', '#8b5cf6', '#f97316', '#ec4899'];
   const theme = THEMES[mapMode] || THEMES.dark;
@@ -1363,6 +1380,8 @@ const RoadDamageMap = ({
         getDamageColor={getDamageColor}
         getSeveritySize={getSeveritySize}
         theme={theme}
+        onRepairClick={onRepairClick}
+        currentUserId={currentUserId}
       />
     </MapContainer>
   );

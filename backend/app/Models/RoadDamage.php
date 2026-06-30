@@ -23,65 +23,67 @@ class RoadDamage extends Model
         'bbox',
         'notes',
         'severity',
-        'status'
+        'status',
+        // Repair fields
+        'repair_photo_path',
+        'repair_notes',
+        'repaired_by',
+        'repaired_at',
     ];
 
     protected $casts = [
-        'confidence' => 'float',
-        'latitude' => 'float',
-        'longitude' => 'float',
-        'area_cm2' => 'float',
-        'area_m2' => 'float',
-        'area_px' => 'integer',
-        'bbox' => 'array',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+        'confidence'  => 'float',
+        'latitude'    => 'float',
+        'longitude'   => 'float',
+        'area_cm2'    => 'float',
+        'area_m2'     => 'float',
+        'area_px'     => 'integer',
+        'bbox'        => 'array',
+        'repaired_at' => 'datetime',
+        'created_at'  => 'datetime',
+        'updated_at'  => 'datetime',
     ];
 
-    /**
-     * Get the tracking session this damage belongs to
-     */
+    /** Tracking session this damage belongs to */
     public function trackingSession()
     {
         return $this->belongsTo(TrackingSession::class);
     }
 
-    /**
-     * Get severity level based on damage type and area
-     */
+    /** User (reparasi) who repaired this damage */
+    public function repairedBy()
+    {
+        return $this->belongsTo(User::class, 'repaired_by');
+    }
+
+    /** Get severity level based on damage type and area */
     public function calculateSeverity(): string
     {
         if ($this->damage_type === 'Lubang') {
             if ($this->area_cm2 > 1000) return 'high';
-            if ($this->area_cm2 > 500) return 'medium';
+            if ($this->area_cm2 > 500)  return 'medium';
             return 'low';
         }
-        
+
         // For cracks
         if ($this->area_cm2 > 5000) return 'high';
         if ($this->area_cm2 > 2000) return 'medium';
         return 'low';
     }
 
-    /**
-     * Scope for filtering by damage type
-     */
+    /** Scope: filter by damage type */
     public function scopeOfType($query, string $type)
     {
         return $query->where('damage_type', $type);
     }
 
-    /**
-     * Scope for filtering by status
-     */
+    /** Scope: filter by status */
     public function scopeWithStatus($query, string $status)
     {
         return $query->where('status', $status);
     }
 
-    /**
-     * Scope for filtering by location radius
-     */
+    /** Scope: filter by location radius */
     public function scopeNearLocation($query, float $lat, float $lng, float $radiusKm = 5)
     {
         $latRange = $radiusKm / 111;

@@ -22,6 +22,8 @@ import {
   Users,
   ChevronDown,
   Navigation,
+  Upload,
+  Wrench,
 } from "lucide-react";
 
 const POLL_INTERVAL = 5000;
@@ -227,8 +229,14 @@ const FilterPanel = ({ filters, setFilters, markers, onClose, onSwitchToAktivita
                 active: "bg-blue-500 text-white border-blue-500",
               },
               {
+                key: "waiting_validation",
+                label: "Menunggu Validasi",
+                color: "bg-orange-500/20 text-orange-300 border-orange-500/50",
+                active: "bg-orange-500 text-white border-orange-500",
+              },
+              {
                 key: "repaired",
-                label: "Sudah Diperbaiki",
+                label: "Diperbaiki",
                 color: "bg-green-500/20 text-green-300 border-green-500/50",
                 active: "bg-green-500 text-white border-green-500",
               },
@@ -509,13 +517,96 @@ const AktivitasPanel = ({ liveTracking, onClose, onSwitchToFilter }) => {
   );
 };
 
+const LaporPerbaikanModal = ({ marker, onClose, onSubmit, submitting }) => {
+  const [photo, setPhoto] = useState(null);
+  const [notes, setNotes] = useState("");
+  const fileInputRef = React.useRef(null);
+
+  // Reset form setiap kali marker berganti (laporan baru)
+  useEffect(() => {
+    setPhoto(null);
+    setNotes("");
+    // Reset file input agar nama file lama tidak menempel
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }, [marker?.id]);
+
+  if (!marker) return null;
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!photo) return;
+    onSubmit({ photo, notes });
+  };
+
+  const handlePhotoChange = (e) => {
+    setPhoto(e.target.files?.[0] || null);
+  };
+
+  const handleClose = () => {
+    setPhoto(null);
+    setNotes("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[1200] flex items-center justify-center p-4" onClick={handleClose}>
+      <div className="bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="px-5 py-4 border-b border-gray-700 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-green-600/20 flex items-center justify-center">
+              <Wrench className="w-5 h-5 text-green-400" />
+            </div>
+            <div>
+              <h3 className="text-white font-bold">Lapor Perbaikan</h3>
+              <p className="text-xs text-gray-400">{marker.type} • {marker.ruas_jalan || "Ruas jalan tidak diketahui"}</p>
+            </div>
+          </div>
+          <button onClick={handleClose} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          {marker.image_url && (
+            <div>
+              <p className="text-xs text-gray-400 mb-2">Foto kerusakan sebelumnya</p>
+              <img src={marker.image_url} alt="Kerusakan" className="w-full h-40 object-cover rounded-xl border border-gray-700" />
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-300 mb-2">Foto jalan setelah diperbaiki</label>
+            <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-gray-600 rounded-xl p-5 cursor-pointer hover:border-green-500 transition">
+              <Upload className="w-6 h-6 text-green-400" />
+              <span className="text-sm text-gray-300">{photo ? photo.name : "Pilih foto perbaikan"}</span>
+              <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/jpg" className="hidden" onChange={handlePhotoChange} required />
+            </label>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-300 mb-2">Catatan (opsional)</label>
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} className="input-field resize-none" placeholder="Contoh: Lubang sudah ditambal dan diratakan" />
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={handleClose} className="btn-secondary flex-1">Batal</button>
+            <button type="submit" disabled={!photo || submitting} className="btn-primary flex-1 disabled:opacity-60">
+              {submitting ? "Mengirim..." : "Kirim Laporan"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 const MapPage = () => {
   const toast = useToast();
-  const { isAdmin } = useAuth();
+  const { user, isAdmin, isReparasi } = useAuth();
   // Simpan isAdmin di ref agar refreshData selalu pakai versi terbaru
   // tanpa perlu isAdmin masuk ke deps array (isAdmin berubah tiap render)
   const isAdminRef = useRef(isAdmin);
-  useEffect(() => { isAdminRef.current = isAdmin; });
+  const isReparasiRef = useRef(isReparasi);
+  useEffect(() => { isAdminRef.current = isAdmin; isReparasiRef.current = isReparasi; });
 
   const [markers, setMarkers] = useState([]);
   const [routePaths, setRoutePaths] = useState([]);
@@ -535,6 +626,8 @@ const MapPage = () => {
   const [ruasList, setRuasList] = useState([]);
   const [lastUpdate, setLastUpdate] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [repairMarker, setRepairMarker] = useState(null);
+  const [repairSubmitting, setRepairSubmitting] = useState(false);
   const pollRef = useRef(null);
 
   // ── Geolocation: lokasi user saat ini ──
@@ -621,7 +714,9 @@ const MapPage = () => {
     setRefreshing(true);
     try {
       const adminMode = isAdminRef.current();
-      const promises = [roadDamageService.getMapMarkers(filters)];
+      const reparasiMode = isReparasiRef.current();
+      const markerFilters = reparasiMode ? { ...filters, status: "verified" } : filters;
+      const promises = [roadDamageService.getMapMarkers(markerFilters)];
       if (adminMode) {
         promises.push(
           trackingService
@@ -685,15 +780,33 @@ const MapPage = () => {
 
   const hasActiveFilters = filters.type || filters.severity || filters.status;
 
+  const handleRepairSubmit = async ({ photo, notes }) => {
+    if (!repairMarker || !photo) return;
+    setRepairSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append("repair_photo", photo);
+      formData.append("repair_notes", notes || "");
+      await roadDamageService.laporPerbaikan(repairMarker.id, formData);
+      toast.success("Laporan perbaikan berhasil dikirim.");
+      setRepairMarker(null);
+      await refreshData();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Gagal mengirim laporan perbaikan.");
+    } finally {
+      setRepairSubmitting(false);
+    }
+  };
+
   return (
     <div
-      className="bg-gray-900"
       style={{
         width: "100%",
         height: "100%",
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
+        backgroundColor: "var(--color-secondary)",
       }}
     >
       <div
@@ -715,8 +828,15 @@ const MapPage = () => {
             minHeight: 0,
           }}
         >
-          {/* Top Controls Bar */}
-          <div className="bg-gray-900/80 backdrop-blur-sm border-b border-gray-700/60 py-1.5 text-xs z-10 flex-shrink-0">
+          {/* Top Controls Bar - always fixed, never scrolls */}
+          <div
+            className="map-controls-bar border-b border-gray-700/60 py-1.5 text-xs z-10 flex-shrink-0"
+            style={{
+              backgroundColor: "var(--color-nav-solid)",
+              backdropFilter: "blur(8px)",
+              borderBottomColor: "var(--color-border)",
+            }}
+          >
             <div className="max-w-[1400px] mx-auto px-4 lg:px-8 flex items-center justify-between flex-wrap gap-1.5">
             <div className="flex items-center gap-2">
 
@@ -724,7 +844,12 @@ const MapPage = () => {
                 <select
                   value={selectedArea}
                   onChange={(e) => setSelectedArea(e.target.value)}
-                  className="appearance-none bg-gray-800 border border-gray-600 text-gray-100 text-xs rounded-lg pl-2.5 pr-6 py-1 focus:outline-none focus:border-blue-500 cursor-pointer"
+                  className="appearance-none border text-xs rounded-lg pl-2.5 pr-6 py-1 focus:outline-none focus:border-blue-500 cursor-pointer"
+                  style={{
+                    backgroundColor: "var(--color-input-bg)",
+                    borderColor: "var(--color-input-border)",
+                    color: "var(--color-text)",
+                  }}
                 >
                   {KECAMATAN_KUBU_RAYA.map((kec) => (
                     <option key={kec.id} value={kec.id}>
@@ -739,7 +864,12 @@ const MapPage = () => {
                 <select
                   value={selectedRuas}
                   onChange={(e) => setSelectedRuas(e.target.value)}
-                  className="appearance-none bg-gray-800 border border-gray-600 text-gray-100 text-xs rounded-lg pl-2.5 pr-6 py-1 focus:outline-none focus:border-blue-500 cursor-pointer max-w-[160px]"
+                  className="appearance-none border text-xs rounded-lg pl-2.5 pr-6 py-1 focus:outline-none focus:border-blue-500 cursor-pointer max-w-[160px]"
+                  style={{
+                    backgroundColor: "var(--color-input-bg)",
+                    borderColor: "var(--color-input-border)",
+                    color: "var(--color-text)",
+                  }}
                 >
                   <option value="">Semua Ruas Jalan</option>
                   {ruasList.map((name) => (
@@ -756,7 +886,12 @@ const MapPage = () => {
               <button
                 onClick={() => refreshData()}
                 disabled={refreshing}
-                className="bg-gray-800 hover:bg-gray-700 border border-gray-600 text-gray-200 text-xs px-2.5 py-1 rounded-lg transition flex items-center gap-1 disabled:opacity-50"
+                className="map-ctrl-btn border text-xs px-2.5 py-1 rounded-lg transition flex items-center gap-1 disabled:opacity-50"
+                style={{
+                  backgroundColor: "var(--color-input-bg)",
+                  borderColor: "var(--color-input-border)",
+                  color: "var(--color-text)",
+                }}
               >
                 <RefreshCw className={`w-3 h-3 ${refreshing ? 'animate-spin' : ''}`} />
                 {refreshing ? 'Memuat...' : 'Refresh'}
@@ -771,8 +906,13 @@ const MapPage = () => {
                     ? "bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-900/40"
                     : locating
                     ? "bg-blue-900/50 border-blue-600 text-blue-300 animate-pulse"
-                    : "bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700"
+                    : "map-ctrl-btn"
                 }`}
+                style={userLocation || locating ? {} : {
+                  backgroundColor: "var(--color-input-bg)",
+                  borderColor: "var(--color-input-border)",
+                  color: "var(--color-text)",
+                }}
               >
                 <Navigation className={`w-3 h-3 ${locating ? 'animate-spin' : ''}`} />
                 {locating ? 'GPS...' : userLocation ? 'Saya' : 'Lokasi'}
@@ -788,8 +928,13 @@ const MapPage = () => {
                     ? "bg-blue-600 border-blue-500 text-white"
                     : hasActiveFilters
                       ? "bg-blue-900/50 border-blue-600 text-blue-300"
-                      : "bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700"
+                      : "map-ctrl-btn"
                 }`}
+                style={(openPanel === "filter" || hasActiveFilters) ? {} : {
+                  backgroundColor: "var(--color-input-bg)",
+                  borderColor: "var(--color-input-border)",
+                  color: "var(--color-text)",
+                }}
               >
                 <Filter className="w-3 h-3" />
                 Filter
@@ -806,8 +951,13 @@ const MapPage = () => {
                   className={`text-xs px-2.5 py-1 rounded-lg transition flex items-center gap-1 border ${
                     openPanel === "aktivitas"
                       ? "bg-blue-600 border-blue-500 text-white"
-                      : "bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700"
+                      : "map-ctrl-btn"
                   }`}
+                  style={openPanel === "aktivitas" ? {} : {
+                    backgroundColor: "var(--color-input-bg)",
+                    borderColor: "var(--color-input-border)",
+                    color: "var(--color-text)",
+                  }}
                 >
                   <Users className="w-3 h-3" />
                   Aktivitas
@@ -866,6 +1016,8 @@ const MapPage = () => {
                 onRuasListLoaded={setRuasList}
                 filters={filters}
                 userLocation={userLocation}
+                currentUserId={user?.id}
+                onRepairClick={isReparasi() ? setRepairMarker : null}
               />
             )}
 
@@ -924,6 +1076,13 @@ const MapPage = () => {
           </div>
         </div>
       </div>
+
+      <LaporPerbaikanModal
+        marker={repairMarker}
+        onClose={() => setRepairMarker(null)}
+        onSubmit={handleRepairSubmit}
+        submitting={repairSubmitting}
+      />
     </div>
   );
 };

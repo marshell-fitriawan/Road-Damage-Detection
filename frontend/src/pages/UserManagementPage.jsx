@@ -13,6 +13,7 @@ import {
   Eye,
   User,
   Mail,
+  Phone,
   Shield,
   Activity,
   MapPin,
@@ -20,6 +21,24 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+
+const getRoleLabel = (role) => {
+  if (role === "admin") return "Administrator";
+  if (role === "reparasi") return "Tim Perbaikan";
+  return "Petugas Lapangan";
+};
+
+const getRoleBadgeClass = (role) => {
+  if (role === "admin") return "bg-primary/20 text-primary border border-primary/30";
+  if (role === "reparasi") return "bg-emerald-600/20 text-emerald-400 border border-emerald-600/30";
+  return "bg-blue-600/20 text-blue-500 border border-blue-600/30";
+};
+
+const getAvatarBg = (role) => {
+  if (role === "admin") return "bg-primary";
+  if (role === "reparasi") return "bg-emerald-600";
+  return "bg-blue-600";
+};
 
 // ─── Detail Panel Profil Petugas ─────────────────────────────────────────────
 const UserDetailPanel = ({ user, onClose }) => {
@@ -77,21 +96,15 @@ const UserDetailPanel = ({ user, onClose }) => {
         {/* Avatar + nama */}
         <div className={`px-6 py-6 flex flex-col items-center text-center border-b ${sectionBorder}`}>
           <div
-            className={`w-20 h-20 rounded-full flex items-center justify-center font-bold text-white text-3xl mb-3 ${
-              user.role === "admin" ? "bg-primary" : "bg-blue-600"
-            }`}
+            className={`w-20 h-20 rounded-full flex items-center justify-center font-bold text-white text-3xl mb-3 ${getAvatarBg(user.role)}`}
           >
             {user.name.charAt(0).toUpperCase()}
           </div>
           <h3 className={`text-xl font-bold ${hdrTitle}`}>{user.name}</h3>
           <span
-            className={`mt-2 px-3 py-1 rounded-full text-xs font-semibold ${
-              user.role === "admin"
-                ? "bg-primary/20 text-primary border border-primary/30"
-                : "bg-blue-600/20 text-blue-500 border border-blue-600/30"
-            }`}
+            className={`mt-2 px-3 py-1 rounded-full text-xs font-semibold ${getRoleBadgeClass(user.role)}`}
           >
-            {user.role === "admin" ? "Administrator" : "Petugas Lapangan"}
+            {getRoleLabel(user.role)}
           </span>
           <div className="mt-2">
             <span
@@ -116,21 +129,34 @@ const UserDetailPanel = ({ user, onClose }) => {
           </div>
 
           <div className={`flex items-center gap-3 rounded-xl p-3 border ${rowBg}`}>
+            <Phone className="w-4 h-4 text-green-400 flex-shrink-0" />
+            <div className="min-w-0">
+              <p className={`text-[10px] uppercase tracking-wide ${labelCls}`}>No. HP</p>
+              <p className={`text-sm truncate ${valCls}`}>{user.phone || "—"}</p>
+            </div>
+          </div>
+
+          <div className={`flex items-center gap-3 rounded-xl p-3 border ${rowBg}`}>
             <Shield className="w-4 h-4 text-purple-400 flex-shrink-0" />
             <div>
               <p className={`text-[10px] uppercase tracking-wide ${labelCls}`}>Peran</p>
               <p className={`text-sm capitalize ${valCls}`}>
-                {user.role === "admin" ? "Administrator" : "Petugas Lapangan"}
+                {getRoleLabel(user.role)}
               </p>
             </div>
           </div>
 
           <div className={`flex items-center gap-3 rounded-xl p-3 border ${rowBg}`}>
-            <Activity className="w-4 h-4 text-green-400 flex-shrink-0" />
+            <Activity className={`w-4 h-4 flex-shrink-0 ${user.role === 'reparasi' ? 'text-emerald-400' : 'text-green-400'}`} />
             <div>
-              <p className={`text-[10px] uppercase tracking-wide ${labelCls}`}>Total Tracking</p>
+              <p className={`text-[10px] uppercase tracking-wide ${labelCls}`}>
+                {user.role === 'reparasi' ? 'Total Perbaikan' : 'Total Tracking'}
+              </p>
               <p className={`text-sm ${valCls}`}>
-                {user.tracking_sessions_count || 0} sesi
+                {user.role === 'reparasi'
+                  ? `${user.repaired_damages_count || 0} perbaikan`
+                  : `${user.tracking_sessions_count || 0} sesi`
+                }
               </p>
             </div>
           </div>
@@ -180,6 +206,7 @@ const UserManagementPage = () => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    phone: "",
     password: "",
     role: "petugas",
   });
@@ -224,7 +251,7 @@ const UserManagementPage = () => {
       }
       setShowForm(false);
       setEditingUser(null);
-      setFormData({ name: "", email: "", password: "", role: "petugas" });
+      setFormData({ name: "", email: "", phone: "", password: "", role: "petugas" });
       loadUsers();
     } catch (error) {
       const msg = error.response?.data?.message || "Gagal menyimpan data pengguna.";
@@ -238,6 +265,7 @@ const UserManagementPage = () => {
     setFormData({
       name: user.name,
       email: user.email,
+      phone: user.phone || "",
       password: "",
       role: user.role,
     });
@@ -336,6 +364,7 @@ const UserManagementPage = () => {
                 <option value="">Semua Peran</option>
                 <option value="admin">Admin</option>
                 <option value="petugas">Petugas</option>
+                <option value="reparasi">Tim Perbaikan</option>
               </select>
             </div>
           </div>
@@ -380,6 +409,16 @@ const UserManagementPage = () => {
                   />
                 </div>
                 <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Nomor HP</label>
+                  <input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="input-field"
+                    placeholder="08xxxxxxxxxx"
+                  />
+                </div>
+                <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Password {editingUser && "(kosongkan jika tidak diubah)"}
                   </label>
@@ -400,6 +439,7 @@ const UserManagementPage = () => {
                     className="input-field"
                   >
                     <option value="petugas">Petugas Lapangan</option>
+                    <option value="reparasi">Tim Perbaikan</option>
                     <option value="admin">Administrator</option>
                   </select>
                 </div>
@@ -459,9 +499,7 @@ const UserManagementPage = () => {
                   {/* Avatar + info */}
                   <div className="flex items-center gap-4 min-w-0">
                     <div
-                      className={`w-11 h-11 rounded-full flex items-center justify-center font-bold text-white text-base flex-shrink-0 ${
-                        user.role === "admin" ? "bg-primary" : "bg-blue-600"
-                      }`}
+                      className={`w-11 h-11 rounded-full flex items-center justify-center font-bold text-white text-base flex-shrink-0 ${getAvatarBg(user.role)}`}
                     >
                       {user.name.charAt(0).toUpperCase()}
                     </div>
@@ -477,13 +515,18 @@ const UserManagementPage = () => {
                       className={`hidden sm:inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${
                         user.role === "admin"
                           ? "bg-primary/20 text-primary"
-                          : "bg-blue-600/20 text-blue-400"
+                          : user.role === "reparasi"
+                            ? "bg-emerald-600/20 text-emerald-400"
+                            : "bg-blue-600/20 text-blue-400"
                       }`}
                     >
-                      {user.role === "admin" ? "Admin" : "Petugas"}
+                      {user.role === "admin" ? "Admin" : user.role === "reparasi" ? "Tim Perbaikan" : "Petugas"}
                     </span>
                     <span className="hidden md:inline-block text-sm text-gray-400">
-                      {user.tracking_sessions_count || 0} tracking
+                      {user.role === 'reparasi'
+                        ? `${user.repaired_damages_count || 0} perbaikan`
+                        : `${user.tracking_sessions_count || 0} tracking`
+                      }
                     </span>
 
                     {/* Lihat Detail */}

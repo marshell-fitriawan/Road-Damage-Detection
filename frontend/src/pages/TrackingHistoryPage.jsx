@@ -4,6 +4,7 @@ import { trackingService } from "../services/api";
 import ConfirmModal from "../components/ConfirmModal";
 import { timeAgo } from "../utils/timeUtils";
 import { useToast } from "../contexts/ToastContext";
+import { useTheme } from "../contexts/ThemeContext";
 import {
   Footprints,
   MapPin,
@@ -25,6 +26,7 @@ import {
 const TrackingHistoryPage = ({ showAll = false }) => {
   const { isAdmin } = useAuth();
   const toast = useToast();
+  const { isDark } = useTheme();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -253,8 +255,10 @@ const TrackingHistoryPage = ({ showAll = false }) => {
 
           {sessions.length === 0 ? (
             <div className="card text-center py-16">
-              <div className="w-20 h-20 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center mx-auto mb-4">
-                <Footprints className="w-10 h-10 text-gray-500" />
+              <div className={`w-20 h-20 rounded-full border flex items-center justify-center mx-auto mb-4 ${
+                isDark ? "bg-gray-800 border-gray-700" : "bg-gray-100 border-gray-200"
+              }`}>
+                <Footprints className={`w-10 h-10 ${isDark ? "text-gray-500" : "text-gray-400"}`} />
               </div>
               <p className="text-gray-300 text-lg font-semibold">Belum ada riwayat tracking</p>
               <p className="text-gray-500 text-sm mt-1">Sesi tracking yang sudah selesai akan muncul di sini</p>
@@ -291,13 +295,15 @@ const TrackingHistoryPage = ({ showAll = false }) => {
                             className={`w-10 h-10 rounded-full flex items-center justify-center ${
                               session.status === "active"
                                 ? "bg-green-600/20 border border-green-500/50"
-                                : "bg-gray-700/60 border border-gray-600/50"
+                                : isDark
+                                  ? "bg-gray-700/60 border border-gray-600/50"
+                                  : "bg-gray-100 border border-gray-200"
                             }`}
                           >
                             {session.status === "active" ? (
                               <Radio className="w-5 h-5 text-green-400 animate-pulse" />
                             ) : (
-                              <CheckCheck className="w-5 h-5 text-gray-400" />
+                              <CheckCheck className={`w-5 h-5 ${isDark ? "text-gray-400" : "text-gray-500"}`} />
                             )}
                           </div>
                         )}
@@ -335,7 +341,9 @@ const TrackingHistoryPage = ({ showAll = false }) => {
                             className={`px-2 py-1 rounded text-xs font-semibold ${
                               session.status === "active"
                                 ? "bg-green-600 text-white"
-                                : "bg-gray-600 text-white"
+                                : isDark
+                                  ? "bg-gray-600 text-white"
+                                  : "bg-gray-200 text-gray-600"
                             }`}
                           >
                             {session.status === "active" ? "Aktif" : "Selesai"}
@@ -372,11 +380,13 @@ const TrackingHistoryPage = ({ showAll = false }) => {
                     {expandedSession === session.id &&
                       sessionDetail &&
                       !selectMode && (
-                        <div className="mt-4 pt-4 border-t border-gray-700">
+                        <div className={`mt-4 pt-4 border-t ${
+                          isDark ? "border-gray-700" : "border-gray-200"
+                        }`}>
                           {sessionDetail.road_damages &&
                           sessionDetail.road_damages.length > 0 ? (
                             <div className="space-y-3">
-                              <h4 className="text-sm font-semibold text-gray-300">
+                              <h4 className={`text-sm font-semibold ${isDark ? "text-gray-300" : "text-gray-600"}`}>
                                 Kerusakan Terdeteksi:
                               </h4>
                               {sessionDetail.road_damages.map((damage) => (
@@ -414,17 +424,19 @@ const TrackingHistoryPage = ({ showAll = false }) => {
                                     <p className="text-sm font-semibold">
                                       {(damage.confidence * 100).toFixed(1)}%
                                     </p>
-                                    <p
-                                      className={`text-xs px-2 py-0.5 rounded ${
-                                        damage.status === "repaired"
-                                          ? "bg-green-600"
-                                          : damage.status === "verified"
-                                            ? "bg-blue-600"
-                                            : "bg-yellow-600"
-                                      } text-white`}
-                                    >
-                                      {damage.status}
-                                    </p>
+                                     <p
+                                       className={`text-xs px-2 py-0.5 rounded ${
+                                         damage.status === "repaired"
+                                           ? "bg-green-600"
+                                           : damage.status === "waiting_validation"
+                                             ? "bg-orange-500"
+                                             : damage.status === "verified"
+                                               ? "bg-blue-600"
+                                               : "bg-yellow-600"
+                                       } text-white`}
+                                     >
+                                       {{ pending: "Belum Diverifikasi", verified: "Terverifikasi", waiting_validation: "Menunggu Validasi", repaired: "Diperbaiki" }[damage.status] || damage.status}
+                                     </p>
                                   </div>
                                 </div>
                               ))}

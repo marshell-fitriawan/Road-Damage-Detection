@@ -24,7 +24,7 @@ import {
 const TopNavbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout, isAdmin, isReparasi } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -77,7 +77,9 @@ const TopNavbar = () => {
   };
 
   // Base path sesuai role
-  const basePath = isAdmin() ? "/admin" : "/petugas";
+  const basePath = isAdmin() ? "/admin" : isReparasi() ? "/reparasi" : "/petugas";
+  const roleLabel = user?.role === "admin" ? "Administrator" : user?.role === "reparasi" ? "Tim Perbaikan" : "Petugas";
+  const avatarBg = user?.role === "reparasi" ? "bg-emerald-600" : "bg-blue-600";
 
   // Navigasi ke page — tutup drawer & dropdown dulu
   const goToPage = (path) => {
@@ -102,7 +104,12 @@ const TopNavbar = () => {
     { path: "/petugas/riwayat",   icon: ClipboardList, label: "Riwayat Tracking" },
   ];
 
-  const navItems = isAdmin() ? adminNavItems : petugasNavItems;
+  const reparasiNavItems = [
+    { path: "/reparasi/dashboard", icon: LayoutGrid, label: "Dashboard" },
+    { path: "/reparasi/peta",      icon: Map,        label: "Peta Kerusakan" },
+  ];
+
+  const navItems = isAdmin() ? adminNavItems : isReparasi() ? reparasiNavItems : petugasNavItems;
 
   const isActive = (path) =>
     location.pathname === path || location.pathname.startsWith(path + "/");
@@ -220,7 +227,7 @@ const TopNavbar = () => {
               className="lg:hidden flex items-center justify-center"
               aria-label="Profil Saya"
             >
-              <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-white text-sm bg-blue-600 flex-shrink-0">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-white text-sm ${avatarBg} flex-shrink-0`}>
                 {user?.name?.charAt(0).toUpperCase()}
               </div>
             </button>
@@ -233,7 +240,7 @@ const TopNavbar = () => {
                   isDark ? "hover:bg-gray-700/50" : "hover:bg-gray-100"
                 }`}
               >
-                <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-white text-sm bg-blue-600 flex-shrink-0">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-white text-sm ${avatarBg} flex-shrink-0`}>
                   {user?.name?.charAt(0).toUpperCase()}
                 </div>
                 <div className="text-right">
@@ -241,7 +248,7 @@ const TopNavbar = () => {
                     {user?.name || "Admin"}
                   </p>
                   <p className={`text-xs leading-tight ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-                    {user?.role === "admin" ? "Administrator" : "Petugas"}
+                    {roleLabel}
                   </p>
                 </div>
                 <ChevronDown
@@ -266,8 +273,8 @@ const TopNavbar = () => {
                     <p className={`text-xs mt-0.5 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
                       {user?.email}
                     </p>
-                    <span className="inline-block mt-1 text-xs bg-blue-600/20 text-blue-500 border border-blue-500/30 rounded px-2 py-0.5 capitalize">
-                      {user?.role === "admin" ? "Administrator" : "Petugas"}
+                    <span className={`inline-block mt-1 text-xs rounded px-2 py-0.5 capitalize ${user?.role === "reparasi" ? "bg-emerald-600/20 text-emerald-400 border border-emerald-600/30" : "bg-blue-600/20 text-blue-500 border border-blue-500/30"}`}>
+                      {roleLabel}
                     </span>
                   </div>
                   <nav className="py-1">
@@ -371,7 +378,7 @@ const TopNavbar = () => {
           }`}
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white text-base flex-shrink-0">
+            <div className={`w-10 h-10 rounded-full ${avatarBg} flex items-center justify-center font-bold text-white text-base flex-shrink-0`}>
               {user?.name?.charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
@@ -379,8 +386,8 @@ const TopNavbar = () => {
                 {user?.name}
               </p>
               <p className={`text-xs truncate ${isDark ? "text-gray-400" : "text-gray-500"}`}>{user?.email}</p>
-              <span className="inline-block mt-0.5 text-[10px] bg-blue-600/20 text-blue-500 border border-blue-500/30 rounded px-1.5 py-0.5 capitalize">
-                {user?.role === "admin" ? "Administrator" : "Petugas"}
+              <span className={`inline-block mt-0.5 text-[10px] rounded px-1.5 py-0.5 capitalize ${user?.role === "reparasi" ? "bg-emerald-600/20 text-emerald-400 border border-emerald-600/30" : "bg-blue-600/20 text-blue-500 border border-blue-500/30"}`}>
+                {roleLabel}
               </span>
             </div>
             <ChevronDown

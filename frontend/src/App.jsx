@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, Component, lazy, Suspense } from "react";
+import { useLenis } from "./hooks/useLenis";
 import {
   BrowserRouter as Router,
   Routes,
@@ -17,6 +18,7 @@ import "./index.css";
 // Lazy-load halaman berat agar bundle awal lebih kecil
 const AdminDashboard      = lazy(() => import("./pages/AdminDashboard"));
 const PetugasDashboard    = lazy(() => import("./pages/PetugasDashboard"));
+const ReparasiDashboard   = lazy(() => import("./pages/ReparasiDashboard"));
 const MapPage             = lazy(() => import("./pages/MapPage"));
 const HistoryPage         = lazy(() => import("./pages/HistoryPage"));
 const TrackingPage        = lazy(() => import("./pages/TrackingPage"));
@@ -140,7 +142,7 @@ const PageTransition = ({ pageKey, children, className = '', style = {} }) => {
 };
 
 // Halaman yang TIDAK pakai wrapper max-w / padding
-const MAP_ROUTES = ["/admin/peta", "/petugas/peta"];
+const MAP_ROUTES = ["/admin/peta", "/petugas/peta", "/reparasi/peta"];
 
 const AppContent = () => {
   const { user, loading } = useAuth();
@@ -168,6 +170,7 @@ const AppContent = () => {
 
   const isAdminRoute = location.pathname.startsWith("/admin/");
   const isPetugasRoute = location.pathname.startsWith("/petugas/");
+  const isReparasiRoute = location.pathname.startsWith("/reparasi/");
 
   // Halaman peta: full screen tanpa wrapper
   const isMapRoute = MAP_ROUTES.some((r) => location.pathname === r);
@@ -180,7 +183,18 @@ const AppContent = () => {
     "/petugas/profil",
     "/petugas/pengaturan",
     "/petugas/bantuan",
+    "/reparasi/profil",
+    "/reparasi/pengaturan",
+    "/reparasi/bantuan",
   ].includes(location.pathname);
+
+  // Smooth scroll: dinonaktifkan di peta & halaman tracking GPS
+  const LENIS_EXCLUDED = [
+    "/admin/peta", "/petugas/peta", "/reparasi/peta",
+    "/petugas/tracking",
+  ];
+  const lenisEnabled = !LENIS_EXCLUDED.some((r) => location.pathname === r);
+  useLenis(lenisEnabled);
 
   const routes = (
     <Routes>
@@ -190,6 +204,8 @@ const AppContent = () => {
           user ? (
             user.role === "admin" ? (
               <Navigate to="/admin/dashboard" replace />
+            ) : user.role === "reparasi" ? (
+              <Navigate to="/reparasi/dashboard" replace />
             ) : (
               <Navigate to="/petugas/dashboard" replace />
             )
@@ -322,6 +338,48 @@ const AppContent = () => {
           </ProtectedRoute>
         }
       />
+
+      {/* ── Tim Perbaikan Routes ── */}
+      <Route
+        path="/reparasi/dashboard"
+        element={
+          <ProtectedRoute roles={["reparasi"]}>
+            <ReparasiDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reparasi/peta"
+        element={
+          <ProtectedRoute roles={["reparasi"]}>
+            <MapPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reparasi/profil"
+        element={
+          <ProtectedRoute roles={["reparasi"]}>
+            <ProfilePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reparasi/pengaturan"
+        element={
+          <ProtectedRoute roles={["reparasi"]}>
+            <SettingsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reparasi/bantuan"
+        element={
+          <ProtectedRoute roles={["reparasi"]}>
+            <HelpPage />
+          </ProtectedRoute>
+        }
+      />
       {/* 404 */}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
@@ -329,8 +387,8 @@ const AppContent = () => {
 
   return (
     <>
-      {/* TopNavbar — tampil di semua halaman admin/petugas */}
-      {(isAdminRoute || isPetugasRoute) && <TopNavbar />}
+      {/* TopNavbar — tampil di semua halaman role */}
+      {(isAdminRoute || isPetugasRoute || isReparasiRoute) && <TopNavbar />}
 
       {/* Peta: full screen, tanpa animasi transisi (agar tidak glitch) */}
       {isMapRoute ? (

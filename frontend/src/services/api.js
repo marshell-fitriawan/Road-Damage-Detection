@@ -48,6 +48,14 @@ export const authService = {
     const response = await api.get("/me");
     return response.data;
   },
+  updateProfile: async (data) => {
+    const response = await api.put("/profile", data);
+    return response.data;
+  },
+  updatePassword: async (data) => {
+    const response = await api.put("/profile/password", data);
+    return response.data;
+  },
 };
 
 // ==================== ROAD DAMAGE SERVICE ====================
@@ -113,6 +121,25 @@ export const roadDamageService = {
     const response = await api.get(
       `/road-damages/map/markers?${params.toString()}`,
     );
+    return response.data;
+  },
+
+  laporPerbaikan: async (id, formData) => {
+    const response = await api.post(
+      `/road-damages/${id}/lapor-perbaikan`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } },
+    );
+    return response.data;
+  },
+
+  approveRepair: async (id) => {
+    const response = await api.post(`/road-damages/${id}/approve-repair`);
+    return response.data;
+  },
+
+  rejectRepair: async (id) => {
+    const response = await api.post(`/road-damages/${id}/reject-repair`);
     return response.data;
   },
 };

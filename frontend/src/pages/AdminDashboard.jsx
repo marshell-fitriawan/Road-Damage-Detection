@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Chart as ChartJS,
@@ -38,6 +38,7 @@ import {
   BarChart2,
   RefreshCw,
   PieChart as PieChartIcon,
+  ShieldCheck,
 } from "lucide-react";
 
 ChartJS.register(
@@ -126,6 +127,9 @@ const AdminDashboard = () => {
   const [chartTypeDamage, setChartTypeDamage] = useState("doughnut");
   const [chartTypeSeverity, setChartTypeSeverity] = useState("bar");
 
+  // Track waiting_validation count untuk deteksi laporan baru
+  const prevWaitingCount = useRef(null);
+
   useEffect(() => {
     loadData();
   }, []);
@@ -135,6 +139,30 @@ const AdminDashboard = () => {
     const interval = setInterval(() => {
       loadData();
     }, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Polling notifikasi: cek laporan perbaikan baru setiap 30 detik
+  useEffect(() => {
+    const checkNewRepairReports = async () => {
+      try {
+        const res = await roadDamageService.getAll({ status: "waiting_validation", per_page: 100 });
+        const currentCount = (res.data || []).length;
+        if (prevWaitingCount.current !== null && currentCount > prevWaitingCount.current) {
+          const diff = currentCount - prevWaitingCount.current;
+          toast.warning(
+            `🔔 ${diff} laporan perbaikan baru masuk! Buka Data Kerusakan → "Menunggu Validasi"`,
+            8000
+          );
+          loadData(); // refresh stats card juga
+        }
+        prevWaitingCount.current = currentCount;
+      } catch (_) {}
+    };
+
+    // Set baseline saat pertama kali mount
+    checkNewRepairReports();
+    const interval = setInterval(checkNewRepairReports, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -350,29 +378,34 @@ const AdminDashboard = () => {
     safeByStatus.find((s) => s.status === "pending")?.count || 0;
   const verifiedCount =
     safeByStatus.find((s) => s.status === "verified")?.count || 0;
+  const waitingValidationCount =
+    safeByStatus.find((s) => s.status === "waiting_validation")?.count || 0;
   const repairedCount =
     safeByStatus.find((s) => s.status === "repaired")?.count || 0;
 
   const statusData = {
     labels: [
-      pendingCount > 0 ? "Pending" : null,
-      verifiedCount > 0 ? "Verified" : null,
-      repairedCount > 0 ? "Repaired" : null,
+      pendingCount > 0 ? "Belum Diverifikasi" : null,
+      verifiedCount > 0 ? "Terverifikasi" : null,
+      waitingValidationCount > 0 ? "Menunggu Validasi" : null,
+      repairedCount > 0 ? "Diperbaiki" : null,
     ].filter(Boolean),
     datasets: [
       {
         label: "Jumlah",
-        data: [pendingCount, verifiedCount, repairedCount].filter(
+        data: [pendingCount, verifiedCount, waitingValidationCount, repairedCount].filter(
           (v) => v > 0,
         ),
         backgroundColor: [
           "rgba(231, 76, 60, 0.8)",
           "rgba(243, 156, 18, 0.8)",
+          "rgba(249, 115, 22, 0.8)",
           "rgba(39, 174, 96, 0.8)",
         ],
         borderColor: [
           "rgba(231, 76, 60, 1)",
           "rgba(243, 156, 18, 1)",
+          "rgba(249, 115, 22, 1)",
           "rgba(39, 174, 96, 1)",
         ],
         borderWidth: 2,
@@ -815,7 +848,7 @@ const AdminDashboard = () => {
             </div>
 
           {/* Status Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="bg-gradient-to-br from-red-900/30 to-red-800/20 rounded-2xl p-6 border border-red-700/30 hover:border-red-600/50 transition">
               <div className="flex items-center justify-between">
                 <div>
@@ -844,6 +877,29 @@ const AdminDashboard = () => {
                 </div>
                 <div className="p-3 bg-yellow-500/20 rounded-lg">
                   <AlertCircle size={24} className="text-yellow-400" />
+                </div>
+              </div>
+            </div>
+
+            <div className={`bg-gradient-to-br from-orange-900/30 to-orange-800/20 rounded-2xl p-6 border transition ${
+              waitingValidationCount > 0
+                ? "border-orange-500/60 shadow-lg shadow-orange-900/20 animate-pulse"
+                : "border-orange-700/30 hover:border-orange-600/50"
+            }`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-orange-400 text-sm font-medium">
+                    Menunggu Validasi
+                  </p>
+                  <p className="text-3xl font-bold text-orange-300 mt-2">
+                    {waitingValidationCount}
+                  </p>
+                  {waitingValidationCount > 0 && (
+                    <p className="text-orange-500 text-xs mt-1 font-semibold">⚠ Perlu persetujuan</p>
+                  )}
+                </div>
+                <div className="p-3 bg-orange-500/20 rounded-lg">
+                  <ShieldCheck size={24} className="text-orange-400" />
                 </div>
               </div>
             </div>

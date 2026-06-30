@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 import {
@@ -7,6 +7,7 @@ import {
   Eye,
   EyeOff,
   AlertCircle,
+  CheckCircle,
   Sun,
   Moon,
   X,
@@ -270,6 +271,8 @@ const LoginPage = () => {
   const { login } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
+  const successMessage = location.state?.message || "";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -280,6 +283,8 @@ const LoginPage = () => {
       const user = await login(email, password);
       if (user.role === "admin") {
         navigate("/admin/dashboard", { replace: true });
+      } else if (user.role === "reparasi") {
+        navigate("/reparasi/dashboard", { replace: true });
       } else {
         navigate("/petugas/dashboard", { replace: true });
       }
@@ -537,6 +542,29 @@ const LoginPage = () => {
           >
             Masuk menggunakan akun yang telah didaftarkan
           </p>
+
+          {/* Success message (mis. setelah ganti password) */}
+          {successMessage && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "12px 14px",
+                borderRadius: 12,
+                background: isDark
+                  ? "rgba(34,197,94,0.12)"
+                  : "rgba(34,197,94,0.08)",
+                border: `1px solid ${isDark ? "rgba(34,197,94,0.3)" : "rgba(34,197,94,0.2)"}`,
+                marginBottom: 14,
+              }}
+            >
+              <CheckCircle size={18} color="#22c55e" style={{ flexShrink: 0 }} />
+              <p style={{ fontSize: 13, color: "#22c55e", margin: 0 }}>
+                {successMessage}
+              </p>
+            </div>
+          )}
 
           {/* Error */}
           {error && (

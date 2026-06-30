@@ -31,6 +31,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Auth
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
+    Route::put('/profile', [AuthController::class, 'updateProfile']);
+    Route::put('/profile/password', [AuthController::class, 'updatePassword']);
 
     // ==================== ROAD DAMAGES ====================
     Route::prefix('road-damages')->group(function () {
@@ -42,6 +44,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/', [RoadDamageController::class, 'index']);
         Route::post('/bulk-delete', [RoadDamageController::class, 'bulkDestroy']);
         Route::get('/{id}', [RoadDamageController::class, 'show']);
+        Route::post('/{id}/lapor-perbaikan', [RoadDamageController::class, 'laporPerbaikan'])->middleware('role:reparasi');
+        Route::post('/{id}/approve-repair', [RoadDamageController::class, 'approveRepair'])->middleware('role:admin');
+        Route::post('/{id}/reject-repair', [RoadDamageController::class, 'rejectRepair'])->middleware('role:admin');
         Route::put('/{id}', [RoadDamageController::class, 'update']);
         Route::delete('/{id}', [RoadDamageController::class, 'destroy']);
     });

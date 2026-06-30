@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
+import { authService } from "../services/api";
 import { useToast } from "../contexts/ToastContext";
 import {
   ArrowLeft,
@@ -19,7 +20,7 @@ import {
 
 const ProfilePage = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { isDark } = useTheme();
   const toast = useToast();
 
@@ -60,23 +61,44 @@ const ProfilePage = () => {
 
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
+    setPasswordStatus(null);
+    setPasswordMsg("");
+
     if (passwordForm.new !== passwordForm.confirm) {
       toast.error("Password baru dan konfirmasi tidak cocok.");
+      setPasswordStatus("error");
+      setPasswordMsg("Password baru dan konfirmasi tidak cocok.");
       return;
     }
     if (passwordForm.new.length < 8) {
       toast.error("Password baru minimal 8 karakter.");
+      setPasswordStatus("error");
+      setPasswordMsg("Password baru minimal 8 karakter.");
       return;
     }
+
     setPasswordLoading(true);
     try {
-      // TODO: ganti dengan API call
-      // await authService.changePassword({ current_password: passwordForm.current, new_password: passwordForm.new });
-      await new Promise((r) => setTimeout(r, 800)); // simulasi
-      toast.success("Password berhasil diperbarui.");
+      await authService.updatePassword({
+        current_password: passwordForm.current,
+        new_password: passwordForm.new,
+        new_password_confirmation: passwordForm.confirm,
+      });
+
+      toast.success("Password berhasil diubah. Silakan login ulang.");
       setPasswordForm({ current: "", new: "", confirm: "" });
+
+      // Backend sudah mencabut semua token. Bersihkan state frontend lalu arahkan ke login.
+      await logout();
+      navigate("/login", {
+        replace: true,
+        state: { message: "Password berhasil diubah. Silakan login ulang dengan password baru." },
+      });
     } catch (err) {
-      toast.error(err?.response?.data?.message || "Gagal memperbarui password.");
+      const msg = err?.response?.data?.message || "Gagal memperbarui password.";
+      setPasswordStatus("error");
+      setPasswordMsg(msg);
+      toast.error(msg);
     } finally {
       setPasswordLoading(false);
     }
@@ -84,14 +106,15 @@ const ProfilePage = () => {
 
   const handlePhoneSubmit = async (e) => {
     e.preventDefault();
+    setPhoneStatus(null);
     setPhoneLoading(true);
     try {
-      // TODO: ganti dengan API call
-      // await userService.updatePhone({ phone });
-      await new Promise((r) => setTimeout(r, 600)); // simulasi
+      await authService.updateProfile({ phone });
+      setPhoneStatus("success");
       toast.success("Nomor HP berhasil disimpan.");
-    } catch {
-      toast.error("Gagal menyimpan nomor HP.");
+    } catch (err) {
+      setPhoneStatus("error");
+      toast.error(err?.response?.data?.message || "Gagal menyimpan nomor HP.");
     } finally {
       setPhoneLoading(false);
     }
@@ -110,6 +133,13 @@ const ProfilePage = () => {
   const readonlyBg = isDark
     ? "bg-gray-800/50 border-gray-700 text-gray-400"
     : "bg-gray-100 border-gray-200 text-gray-500";
+
+  const roleLabel =
+    user?.role === "admin"
+      ? "Administrator"
+      : user?.role === "reparasi"
+        ? "Tim Perbaikan"
+        : "Petugas";
 
   return (
     <div className={`min-h-screen ${bg}`}>
@@ -174,7 +204,7 @@ const ProfilePage = () => {
                   {user?.name}
                 </p>
                 <span className="inline-block mt-1 text-xs bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-full px-2.5 py-0.5 font-semibold">
-                  {user?.role === "admin" ? "Administrator" : "Petugas"}
+                  {roleLabel}
                 </span>
               </div>
             </div>

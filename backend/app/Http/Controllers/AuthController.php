@@ -16,7 +16,7 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'email' => 'required|email',
+            'email'    => 'required|email',
             'password' => 'required|string',
         ]);
 
@@ -43,18 +43,19 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Login berhasil',
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
+            'user'    => [
+                'id'    => $user->id,
+                'name'  => $user->name,
                 'email' => $user->email,
-                'role' => $user->role,
+                'phone' => $user->phone,
+                'role'  => $user->role,
             ],
             'token' => $token,
         ]);
     }
 
     /**
-     * Logout user (revoke token)
+     * Logout user (revoke current token)
      */
     public function logout(Request $request)
     {
@@ -75,12 +76,75 @@ class AuthController extends Controller
 
         return response()->json([
             'success' => true,
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
+            'user'    => [
+                'id'    => $user->id,
+                'name'  => $user->name,
                 'email' => $user->email,
-                'role' => $user->role,
+                'phone' => $user->phone,
+                'role'  => $user->role,
             ],
+        ]);
+    }
+
+    /**
+     * Update own profile (name & phone) — any authenticated user
+     */
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'name'  => 'sometimes|string|max:255',
+            'phone' => 'sometimes|nullable|string|max:20',
+        ]);
+
+        $user->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profil berhasil diperbarui',
+            'user'    => [
+                'id'    => $user->id,
+                'name'  => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone,
+                'role'  => $user->role,
+            ],
+        ]);
+    }
+
+    /**
+     * Update own password — any authenticated user
+     * After success, ALL tokens are revoked to force re-login.
+     */
+    public function updatePassword(Request $request)
+    {
+        $request->validate([
+            'current_password'          => 'required|string',
+            'new_password'              => 'required|string|min:8|confirmed',
+            'new_password_confirmation' => 'required|string',
+        ]);
+
+        $user = $request->user();
+
+        // Verify current password
+        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Password saat ini tidak benar.',
+                'errors'  => ['current_password' => ['Password saat ini tidak benar.']],
+            ], 422);
+        }
+
+        // Update password (auto-hashed by 'hashed' cast)
+        $user->update(['password' => $request->new_password]);
+
+        // Revoke ALL tokens — user must re-login
+        $user->tokens()->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password berhasil diubah. Silakan login ulang.',
         ]);
     }
 }

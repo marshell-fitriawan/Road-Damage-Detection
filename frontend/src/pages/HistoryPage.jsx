@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { createPortal } from 'react-dom';
 import { roadDamageService } from "../services/api";
 import ConfirmModal from "../components/ConfirmModal";
 import { useToast } from "../contexts/ToastContext";
 import { useAuth } from "../contexts/AuthContext";
+import { useTheme } from "../contexts/ThemeContext";
 import { timeAgo } from "../utils/timeUtils";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
@@ -31,7 +32,11 @@ import {
   Save,
   CheckCircle2,
   Search,
+  ThumbsUp,
+  ThumbsDown,
   Download,
+  RefreshCw,
+  Bell,
 } from "lucide-react";
 
 /* ─── Detail Modal ───────────────────────────────────────────────────────── */
@@ -39,6 +44,7 @@ const DetailModal = ({ damage, editingNotes, setEditingNotes, onSaveNotes, onClo
   const [imgZoomed, setImgZoomed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const { isDark } = useTheme();
 
   const handleSave = async () => {
     setSaving(true);
@@ -48,8 +54,22 @@ const DetailModal = ({ damage, editingNotes, setEditingNotes, onSaveNotes, onClo
     setTimeout(() => setSaved(false), 2000);
   };
 
+  const panel = isDark ? "bg-gray-800/60 border-gray-700/50" : "bg-gray-50 border-gray-200";
+  const panelText = isDark ? "text-white" : "text-gray-800";
+  const labelText = isDark ? "text-gray-400" : "text-gray-500";
+  const rowText = isDark ? "text-gray-200" : "text-gray-700";
+  const modalBg = isDark ? "bg-gray-900 border-gray-700/80" : "bg-white border-gray-200";
+  const headerBg = isDark ? "bg-gray-900/95 border-gray-700/60" : "bg-white/95 border-gray-200";
+  const closeBtnCls = isDark ? "bg-gray-700/70 hover:bg-gray-600 text-gray-400 hover:text-white" : "bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-800";
+  const progressTrack = isDark ? "bg-gray-700" : "bg-gray-200";
+  const infoRow = isDark ? "bg-gray-800/40 border-gray-700/40" : "bg-gray-50 border-gray-200";
+  const repairInfoRow = isDark ? "bg-gray-800/50 border-gray-700/40" : "bg-gray-50 border-gray-200";
+  const textareaStyle = isDark
+    ? "bg-gray-800 border-gray-600 text-gray-200 placeholder-gray-500"
+    : "bg-white border-gray-300 text-gray-800 placeholder-gray-400";
+
   const severityLabel = { high: "Tinggi", medium: "Sedang", low: "Rendah" };
-  const statusLabel = { pending: "Pending", verified: "Terverifikasi", repaired: "Diperbaiki" };
+  const statusLabel = { pending: "Belum Diverifikasi", verified: "Terverifikasi", waiting_validation: "Menunggu Validasi", repaired: "Diperbaiki" };
 
   return createPortal(
     <div
@@ -80,12 +100,12 @@ const DetailModal = ({ damage, editingNotes, setEditingNotes, onSaveNotes, onClo
       )}
 
       <div
-        className="bg-gray-900 border border-gray-700/80 rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[88vh] overflow-y-auto"
+        className={`border rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[88vh] overflow-y-auto ${modalBg}`}
         style={{ animation: "slideUpFade 0.3s cubic-bezier(0.16,1,0.3,1) both" }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="sticky top-0 bg-gray-900/95 backdrop-blur-sm border-b border-gray-700/60 px-5 py-4 flex items-center justify-between z-10 rounded-t-2xl">
+        <div className={`sticky top-0 backdrop-blur-sm border-b px-5 py-4 flex items-center justify-between z-10 rounded-t-2xl ${headerBg}`}>
           <div className="flex items-center gap-3">
             <div className={`px-3 py-1 rounded-full text-xs font-bold ${getDamageTypeColor(damage.damage_type)}`}>
               {damage.damage_type}
@@ -96,7 +116,7 @@ const DetailModal = ({ damage, editingNotes, setEditingNotes, onSaveNotes, onClo
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-gray-700/70 hover:bg-gray-600 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
+            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${closeBtnCls}`}
           >
             <X className="w-4 h-4" />
           </button>
@@ -122,23 +142,23 @@ const DetailModal = ({ damage, editingNotes, setEditingNotes, onSaveNotes, onClo
         <div className="p-5 space-y-5">
           {/* Stats Grid */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-gray-800/60 border border-gray-700/50 rounded-xl p-3">
+            <div className={`border rounded-xl p-3 ${panel}`}>
               <div className="flex items-center gap-2 mb-1">
                 <Activity className="w-3.5 h-3.5 text-blue-400" />
-                <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wide">Confidence</p>
+                <p className={`text-[11px] font-medium uppercase tracking-wide ${labelText}`}>Confidence</p>
               </div>
-              <p className="text-lg font-bold text-white">{(damage.confidence * 100).toFixed(1)}%</p>
-              <div className="mt-1.5 h-1.5 bg-gray-700 rounded-full overflow-hidden">
+              <p className={`text-lg font-bold ${panelText}`}>{(damage.confidence * 100).toFixed(1)}%</p>
+              <div className={`mt-1.5 h-1.5 rounded-full overflow-hidden ${progressTrack}`}>
                 <div
                   className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full"
                   style={{ width: `${(damage.confidence * 100).toFixed(0)}%` }}
                 />
               </div>
             </div>
-            <div className="bg-gray-800/60 border border-gray-700/50 rounded-xl p-3">
+            <div className={`border rounded-xl p-3 ${panel}`}>
               <div className="flex items-center gap-2 mb-1">
                 <AlertTriangle className="w-3.5 h-3.5 text-orange-400" />
-                <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wide">Keparahan</p>
+                <p className={`text-[11px] font-medium uppercase tracking-wide ${labelText}`}>Keparahan</p>
               </div>
               <p className={`text-sm font-bold px-2 py-0.5 rounded-lg w-fit ${getSeverityBadge(damage.severity)}`}>
                 {severityLabel[damage.severity]?.toUpperCase() || damage.severity?.toUpperCase()}
@@ -149,46 +169,144 @@ const DetailModal = ({ damage, editingNotes, setEditingNotes, onSaveNotes, onClo
           {/* Info rows */}
           <div className="space-y-2.5">
             {damage.latitude && damage.longitude && (
-              <div className="flex items-center gap-3 bg-gray-800/40 border border-gray-700/40 rounded-xl px-4 py-3">
+              <div className={`flex items-center gap-3 border rounded-xl px-4 py-3 ${infoRow}`}>
                 <MapPin className="w-4 h-4 text-green-400 flex-shrink-0" />
                 <div>
-                  <p className="text-[11px] text-gray-500 uppercase tracking-wide">Koordinat GPS</p>
-                  <p className="text-sm font-mono text-gray-200">
+                  <p className={`text-[11px] uppercase tracking-wide ${labelText}`}>Koordinat GPS</p>
+                  <p className={`text-sm font-mono ${rowText}`}>
                     {damage.latitude.toFixed(6)}, {damage.longitude.toFixed(6)}
                   </p>
                 </div>
               </div>
             )}
             {damage.tracking_session?.user && (
-              <div className="flex items-center gap-3 bg-gray-800/40 border border-gray-700/40 rounded-xl px-4 py-3">
+              <div className={`flex items-center gap-3 border rounded-xl px-4 py-3 ${infoRow}`}>
                 <User className="w-4 h-4 text-purple-400 flex-shrink-0" />
                 <div>
-                  <p className="text-[11px] text-gray-500 uppercase tracking-wide">Petugas</p>
-                  <p className="text-sm text-gray-200 font-semibold">{damage.tracking_session.user.name}</p>
+                  <p className={`text-[11px] uppercase tracking-wide ${labelText}`}>Petugas</p>
+                  <p className={`text-sm font-semibold ${rowText}`}>{damage.tracking_session.user.name}</p>
                 </div>
               </div>
             )}
-            <div className="flex items-center gap-3 bg-gray-800/40 border border-gray-700/40 rounded-xl px-4 py-3">
-              <Clock className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            <div className={`flex items-center gap-3 border rounded-xl px-4 py-3 ${infoRow}`}>
+              <Clock className={`w-4 h-4 flex-shrink-0 ${labelText}`} />
               <div>
-                <p className="text-[11px] text-gray-500 uppercase tracking-wide">Terdeteksi</p>
-                <p className="text-sm text-gray-200">
+                <p className={`text-[11px] uppercase tracking-wide ${labelText}`}>Terdeteksi</p>
+                <p className={`text-sm ${rowText}`}>
                   {format(new Date(damage.created_at), "dd MMMM yyyy, HH:mm", { locale: id })}
                 </p>
               </div>
             </div>
           </div>
 
+          {/* ── Repair Validation (waiting_validation status) ── */}
+          {damage.status === "waiting_validation" && (
+            <div className="rounded-xl border border-orange-500/40 bg-orange-500/5 p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-orange-400" />
+                <p className="text-sm font-bold text-orange-400">Menunggu Validasi Admin</p>
+              </div>
+
+              <p className="text-xs text-orange-300/70">Petugas perbaikan telah mengirim bukti. Periksa foto sebelum dan sesudah untuk menyetujui atau menolak laporan ini.</p>
+
+              {/* Before / After */}
+              {damage.image_path && damage.repair_photo_path && (
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <p className="text-[10px] text-gray-500 uppercase tracking-wide mb-1">Sebelum</p>
+                    <img src={`/storage/${damage.image_path}`} alt="Sebelum" className="w-full h-28 object-cover rounded-lg border border-red-500/40" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-500 uppercase tracking-wide mb-1">Sesudah</p>
+                    <img src={`/storage/${damage.repair_photo_path}`} alt="Sesudah" className="w-full h-28 object-cover rounded-lg border border-green-500/40" />
+                  </div>
+                </div>
+              )}
+
+              {damage.repair_notes && (
+                <p className="text-xs text-gray-400"><span className="font-semibold text-gray-300">Catatan:</span> {damage.repair_notes}</p>
+              )}
+              {damage.repairedBy && (
+                <p className="text-xs text-gray-400"><span className="font-semibold text-gray-300">Dikirim oleh:</span> {damage.repairedBy.name}</p>
+              )}
+
+              {/* Approve / Reject buttons */}
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={() => onApprove(damage.id)}
+                  className="flex-1 bg-green-600 hover:bg-green-500 text-white py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all"
+                >
+                  <ThumbsUp className="w-4 h-4" /> Setujui
+                </button>
+                <button
+                  onClick={() => onReject(damage.id)}
+                  className="flex-1 bg-red-600 hover:bg-red-500 text-white py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all"
+                >
+                  <ThumbsDown className="w-4 h-4" /> Tolak
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Laporan Perbaikan (hanya jika status repaired) ── */}
+          {damage.status === "repaired" && (
+            <div className="rounded-xl border border-green-600/40 bg-green-600/5 p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Wrench className="w-4 h-4 text-green-400" />
+                <p className="text-sm font-bold text-green-400">Laporan Perbaikan</p>
+                <span className="ml-auto text-[10px] uppercase tracking-wide text-green-500/70 font-semibold">
+                  Selesai Diperbaiki
+                </span>
+              </div>
+
+              {/* Foto perbaikan */}
+              {damage.repair_photo_path && (
+                <img
+                  src={`/storage/${damage.repair_photo_path}`}
+                  alt="Foto perbaikan"
+                  className="w-full rounded-lg border border-green-700/40 object-cover"
+                  style={{ maxHeight: "200px" }}
+                />
+              )}
+
+              {/* Catatan perbaikan */}
+              {damage.repair_notes && (
+                <div className="rounded-lg bg-green-900/10 border border-green-700/30 px-3 py-2">
+                  <p className="text-[11px] text-green-400/80 uppercase tracking-wide font-semibold mb-1">Catatan Tim Perbaikan</p>
+                  <p className="text-sm text-gray-200 whitespace-pre-wrap">{damage.repair_notes}</p>
+                </div>
+              )}
+
+              {/* Info: siapa & kapan */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className={`rounded-lg border px-3 py-2 ${repairInfoRow}`}>
+                  <p className={`text-[10px] uppercase tracking-wide ${labelText}`}>Diperbaiki oleh</p>
+                  <p className={`text-sm font-semibold truncate ${rowText}`}>
+                    {damage.repaired_by?.name || damage.repaired_by_name || "—"}
+                  </p>
+                </div>
+                <div className={`rounded-lg border px-3 py-2 ${repairInfoRow}`}>
+                  <p className={`text-[10px] uppercase tracking-wide ${labelText}`}>Tanggal Perbaikan</p>
+                  <p className={`text-sm font-semibold ${rowText}`}>
+                    {damage.repaired_at
+                      ? format(new Date(damage.repaired_at), "dd MMM yyyy, HH:mm", { locale: id })
+                      : "—"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Notes */}
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <FileText className="w-4 h-4 text-gray-400" />
-              <label className="text-sm font-semibold text-gray-300">Catatan Admin</label>
+              <FileText className={`w-4 h-4 ${labelText}`} />
+              <label className={`text-sm font-semibold ${rowText}`}>Catatan Admin</label>
             </div>
             <textarea
               value={editingNotes}
               onChange={e => setEditingNotes(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-600 rounded-xl px-4 py-3 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-blue-500 resize-none transition-colors"
+              className={`w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 resize-none transition-colors ${textareaStyle}`}
               placeholder="Tambahkan catatan untuk kerusakan ini..."
               rows={3}
             />
@@ -229,6 +347,8 @@ const DetailModal = ({ damage, editingNotes, setEditingNotes, onSaveNotes, onClo
 const HistoryPage = () => {
   const toast = useToast();
   const { isAdmin } = useAuth();
+  const { isDark } = useTheme();
+  const [activeTab, setActiveTab] = useState("all");
   const [damages, setDamages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -252,9 +372,16 @@ const HistoryPage = () => {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [selectMode, setSelectMode] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Client-side search filter
+  // Polling: track previous waiting_validation count to detect new reports
+  const prevWaitingCount = useRef(null);
+
+  // Client-side filter: search + tab
   const filteredDamages = damages.filter((d) => {
+    // Tab filter
+    if (activeTab !== "all" && d.status !== activeTab) return false;
+    // Search filter
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     const matchType = d.damage_type?.toLowerCase().includes(q);
@@ -262,12 +389,50 @@ const HistoryPage = () => {
     return matchType || matchUser;
   });
 
+  useEffect(() => { setCurrentPage(1); }, [activeTab]);
   useEffect(() => { loadDamages(); }, [currentPage, filters]);
+
+  // Manual refresh handler
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadDamages();
+    setTimeout(() => setRefreshing(false), 600);
+    toast.success("Data berhasil diperbarui");
+  };
+
+  // Polling: cek waiting_validation baru setiap 30 detik (khusus admin)
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    const checkForNewReports = async () => {
+      try {
+        const res = await roadDamageService.getAll({ status: "waiting_validation", per_page: 100 });
+        const currentCount = (res.data || []).length;
+
+        if (prevWaitingCount.current !== null && currentCount > prevWaitingCount.current) {
+          const diff = currentCount - prevWaitingCount.current;
+          // Auto-refresh data & tampilkan notifikasi
+          loadDamages();
+          toast.warning(
+            `🔔 ${diff} laporan perbaikan baru masuk! Periksa tab "Menunggu Validasi"`,
+            8000
+          );
+        }
+        prevWaitingCount.current = currentCount;
+      } catch (_) {}
+    };
+
+    // Jalankan sekali saat mount untuk set baseline
+    checkForNewReports();
+
+    const interval = setInterval(checkForNewReports, 30000);
+    return () => clearInterval(interval);
+  }, [isAdmin]);
 
   const loadDamages = async () => {
     setLoading(true);
     try {
-      const response = await roadDamageService.getAll({ ...filters, page: currentPage, per_page: 12 });
+      const response = await roadDamageService.getAll({ ...filters, page: currentPage, per_page: 100 });
       setDamages(response.data || []);
       setTotalPages(response.last_page || 1);
     } catch (error) {
@@ -327,36 +492,30 @@ const HistoryPage = () => {
 
   const exitSelectMode = () => { setSelectMode(false); setSelectedIds(new Set()); };
 
+  const handleApproveRepair = async (id) => {
+    try {
+      await roadDamageService.approveRepair(id);
+      setSelectedDamage(null);
+      loadDamages();
+      toast.success("Perbaikan disetujui! Status berubah menjadi Selesai Diperbaiki.");
+    } catch { toast.error("Gagal menyetujui perbaikan"); }
+  };
+
+  const handleRejectRepair = async (id) => {
+    try {
+      await roadDamageService.rejectRepair(id);
+      setSelectedDamage(null);
+      loadDamages();
+      toast.error("Laporan perbaikan ditolak. Petugas harus mengulangi perbaikan.");
+    } catch { toast.error("Gagal menolak laporan perbaikan"); }
+  };
+
   const handleStatusUpdate = async (id, newStatus) => {
     try {
       await roadDamageService.update(id, { status: newStatus });
       loadDamages();
       toast.success("Status berhasil diperbarui");
     } catch (error) { toast.error("Gagal memperbarui status"); }
-  };
-
-  const handleExportCSV = () => {
-    const headers = ["ID", "Jenis", "Keparahan", "Status", "Confidence", "Petugas", "Koordinat", "Tanggal"];
-    const rows = filteredDamages.map((d) => [
-      d.id,
-      d.damage_type,
-      d.severity,
-      d.status,
-      `${(d.confidence * 100).toFixed(1)}%`,
-      d.tracking_session?.user?.name || "-",
-      d.latitude && d.longitude ? `${d.latitude.toFixed(6)}, ${d.longitude.toFixed(6)}` : "-",
-      format(new Date(d.created_at), "dd/MM/yyyy HH:mm"),
-    ]);
-    const csvContent = [headers, ...rows]
-      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
-      .join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `kerusakan-jalan-${format(new Date(), "yyyy-MM-dd")}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
   };
 
   const handleSaveNotes = async (id) => {
@@ -385,13 +544,19 @@ const HistoryPage = () => {
   };
 
   const getStatusBadge = (status) => {
-    const badges = { pending: "bg-yellow-600 text-white", verified: "bg-blue-600 text-white", repaired: "bg-green-600 text-white" };
+    const badges = {
+      pending: "bg-yellow-600 text-white",
+      verified: "bg-blue-600 text-white",
+      waiting_validation: "bg-orange-500 text-white",
+      repaired: "bg-green-600 text-white",
+    };
     return badges[status] || "bg-gray-600 text-white";
   };
 
   const getStatusIcon = (status) => {
     if (status === "repaired") return <Wrench className="w-3 h-3" />;
     if (status === "verified") return <ShieldCheck className="w-3 h-3" />;
+    if (status === "waiting_validation") return <Clock className="w-3 h-3" />;
     return <Clock className="w-3 h-3" />;
   };
 
@@ -409,14 +574,15 @@ const HistoryPage = () => {
             <div className="flex gap-2">
               {!selectMode ? (
                 <>
-                  {isAdmin() && (
-                    <button
-                      onClick={handleExportCSV}
-                      className="btn-secondary flex items-center gap-2 text-green-400 border-green-700/50 hover:border-green-500"
-                    >
-                      <Download className="w-4 h-4" /> Export CSV
-                    </button>
-                  )}
+                  <button
+                    onClick={handleRefresh}
+                    disabled={refreshing || loading}
+                    title="Refresh data"
+                    className="btn-secondary flex items-center gap-2 disabled:opacity-60"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
+                    {refreshing ? "Memuat..." : "Refresh"}
+                  </button>
                   <button onClick={() => setSelectMode(true)} className="btn-secondary flex items-center gap-2">
                     <CheckSquare className="w-4 h-4" /> Pilih
                   </button>
@@ -430,6 +596,46 @@ const HistoryPage = () => {
                 </button>
               )}
             </div>
+          </div>
+
+          {/* Tab Navigation */}
+          <div className="flex gap-2 overflow-x-auto pb-1 -mb-1 scrollbar-hide">
+            {[
+              { id: "all", label: "Semua", icon: FileText, count: damages.length },
+              { id: "pending", label: "Perlu Verifikasi", icon: AlertTriangle, count: damages.filter(d => d.status === "pending").length },
+              { id: "verified", label: "Siap Diperbaiki", icon: ShieldCheck, count: damages.filter(d => d.status === "verified").length },
+              { id: "waiting_validation", label: "Menunggu Validasi", icon: Clock, count: damages.filter(d => d.status === "waiting_validation").length },
+              { id: "repaired", label: "Selesai", icon: CheckCircle2, count: damages.filter(d => d.status === "repaired").length },
+            ].map(({ id, label, icon: Icon, count }) => {
+              const isActive = activeTab === id;
+              return (
+                <button
+                  key={id}
+                  onClick={() => setActiveTab(id)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all border ${
+                    isActive
+                      ? id === "waiting_validation"
+                        ? "bg-orange-500 border-orange-500 text-white shadow-lg shadow-orange-900/30"
+                        : "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-900/30"
+                      : isDark
+                        ? "bg-gray-800/60 border-gray-700/50 text-gray-400 hover:bg-gray-700 hover:text-gray-200"
+                        : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-700 shadow-sm"
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {label}
+                  {count > 0 && (
+                    <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-full ${
+                      isActive
+                        ? "bg-white/20 text-white"
+                        : isDark
+                          ? "bg-gray-700 text-gray-300"
+                          : "bg-gray-100 text-gray-500"
+                    }`}>{count}</span>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           {/* Bulk toolbar */}
@@ -493,7 +699,6 @@ const HistoryPage = () => {
                 {[
                   { label: "Jenis Kerusakan", key: "type", options: [["", "Semua"], ["Retak-Buaya","Retak Buaya"], ["Retak-Memanjang","Retak Memanjang"], ["Retak-Melintang","Retak Melintang"], ["Lubang","Lubang"]] },
                   { label: "Keparahan", key: "severity", options: [["","Semua"],["low","Low"],["medium","Medium"],["high","High"]] },
-                  { label: "Status", key: "status", options: [["","Semua"],["pending","Pending"],["verified","Verified"],["repaired","Repaired"]] },
                 ].map(({ label, key, options }) => (
                   <div key={key}>
                     <label className="block text-sm font-medium mb-2">{label}</label>
@@ -528,8 +733,10 @@ const HistoryPage = () => {
             </div>
           ) : filteredDamages.length === 0 ? (
             <div className="card text-center py-16">
-              <div className="w-20 h-20 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center mx-auto mb-4">
-                <ScanSearch className="w-10 h-10 text-gray-500" />
+              <div className={`w-20 h-20 rounded-full border flex items-center justify-center mx-auto mb-4 ${
+                isDark ? "bg-gray-800 border-gray-700" : "bg-gray-100 border-gray-200"
+              }`}>
+                <ScanSearch className={`w-10 h-10 ${isDark ? "text-gray-500" : "text-gray-400"}`} />
               </div>
               <p className="text-gray-300 text-lg font-semibold">
                 {searchQuery ? "Tidak ada hasil pencarian" : "Belum ada data kerusakan"}
@@ -595,22 +802,34 @@ const HistoryPage = () => {
                         </span>
                       </div>
 
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-2">
                         <span className="text-xs text-gray-400">Status</span>
-                        <select
-                          value={damage.status}
-                          onChange={e => handleStatusUpdate(damage.id, e.target.value)}
-                          className={`px-2 py-1 rounded text-xs font-bold cursor-pointer border-0 outline-none ${getStatusBadge(damage.status)}`}
-                        >
-                          <option value="pending">PENDING</option>
-                          <option value="verified">VERIFIED</option>
-                          <option value="repaired">REPAIRED</option>
-                        </select>
+                        <div className="relative">
+                          <select
+                            value={damage.status}
+                            onChange={e => handleStatusUpdate(damage.id, e.target.value)}
+                            className="appearance-none text-xs font-bold cursor-pointer pl-2 pr-6 py-1 rounded border-0 outline-none focus:ring-1 focus:ring-offset-0"
+                            style={{
+                              backgroundColor:
+                                damage.status === 'pending' ? '#ca8a04' :
+                                damage.status === 'verified' ? '#2563eb' :
+                                damage.status === 'waiting_validation' ? '#f97316' :
+                                damage.status === 'repaired' ? '#16a34a' : '#4b5563',
+                              color: '#ffffff',
+                            }}
+                          >
+                            <option value="pending">Belum Diverifikasi</option>
+                            <option value="verified">Terverifikasi</option>
+                            <option value="waiting_validation">Menunggu Validasi</option>
+                            <option value="repaired">Diperbaiki</option>
+                          </select>
+                          <svg className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 pointer-events-none" style={{color:'#ffffff'}} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                        </div>
                       </div>
 
                       <div className="flex items-center justify-between text-xs text-gray-400">
                         <span>Confidence</span>
-                        <span className="font-semibold text-gray-200">{(damage.confidence * 100).toFixed(1)}%</span>
+                        <span className={`font-semibold ${isDark ? "text-gray-200" : "text-gray-700"}`}>{(damage.confidence * 100).toFixed(1)}%</span>
                       </div>
 
                       {damage.tracking_session?.user && (
@@ -632,7 +851,9 @@ const HistoryPage = () => {
                     </div>
 
                     {!selectMode && (
-                      <div className="flex gap-2 pt-3 mt-3 border-t border-gray-700/50">
+                      <div className={`flex gap-2 pt-3 mt-3 border-t ${
+                        isDark ? "border-gray-700/50" : "border-gray-200"
+                      }`}>
                         <button
                           onClick={() => { setSelectedDamage(damage); setEditingNotes(damage.notes || ""); }}
                           title="Lihat detail kerusakan"
@@ -654,7 +875,11 @@ const HistoryPage = () => {
                       <button
                         onClick={() => toggleSelect(damage.id)}
                         className={`w-full mt-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                          isSelected ? "bg-blue-600 text-white" : "bg-gray-700 hover:bg-gray-600 text-gray-300"
+                          isSelected
+                            ? "bg-blue-600 text-white"
+                            : isDark
+                              ? "bg-gray-700 hover:bg-gray-600 text-gray-300"
+                              : "bg-gray-100 hover:bg-gray-200 text-gray-600 border border-gray-200"
                         }`}
                       >
                         {isSelected ? "✓ Dipilih" : "Pilih"}
@@ -692,6 +917,8 @@ const HistoryPage = () => {
           onSaveNotes={handleSaveNotes}
           onClose={() => setSelectedDamage(null)}
           onDelete={(id) => { setSelectedDamage(null); handleDelete(id); }}
+          onApprove={handleApproveRepair}
+          onReject={handleRejectRepair}
           getSeverityBadge={getSeverityBadge}
           getStatusBadge={getStatusBadge}
           getDamageTypeColor={getDamageTypeColor}

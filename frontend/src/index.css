@@ -32,28 +32,28 @@
 }
 
 [data-theme="light"] {
-  --color-primary: #2563eb;
-  --color-secondary: #f0f4f8;
+  --color-primary: #6366f1;
+  --color-secondary: #f5f6fa;
   --color-accent: #ffffff;
   --color-surface: #ffffff;
   --color-surface-hover: #f8fafc;
-  --color-border: #e2e8f0;
-  --color-border-subtle: rgba(203, 213, 225, 0.6);
+  --color-border: #e8eaf0;
+  --color-border-subtle: rgba(203, 213, 225, 0.5);
   --color-text: #1e293b;
   --color-text-secondary: #475569;
   --color-text-muted: #64748b;
   --color-text-dim: #94a3b8;
-  --color-input-bg: #f8fafc;
-  --color-input-border: #cbd5e1;
+  --color-input-bg: #f8f9fc;
+  --color-input-border: #dde1eb;
   --color-card-bg: #ffffff;
-  --color-nav-bg: linear-gradient(to right, #ffffff, #f8fafc, #eff6ff);
+  --color-nav-bg: linear-gradient(to right, #ffffff, #f8f9fc, #f0f1ff);
   --color-nav-solid: #ffffff;
   --color-dropdown-bg: #ffffff;
-  --color-badge-bg: rgba(37, 99, 235, 0.1);
-  --color-badge-text: #2563eb;
-  --color-badge-border: rgba(37, 99, 235, 0.25);
-  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.08);
-  --shadow-dropdown: 0 8px 32px rgba(0, 0, 0, 0.12);
+  --color-badge-bg: rgba(99, 102, 241, 0.08);
+  --color-badge-text: #6366f1;
+  --color-badge-border: rgba(99, 102, 241, 0.2);
+  --shadow-card: 0 2px 16px rgba(0, 0, 0, 0.06);
+  --shadow-dropdown: 0 8px 32px rgba(0, 0, 0, 0.10);
 }
 
 
@@ -266,9 +266,9 @@ nav[class*="border-b"] {
 /* Blue accents stay but soften */
 [data-theme="light"] .bg-blue-600\/30 { background-color: rgba(37, 99, 235, 0.1) !important; }
 [data-theme="light"] .bg-blue-600\/20 { background-color: rgba(37, 99, 235, 0.08) !important; }
-[data-theme="light"] .text-blue-300   { color: #2563eb !important; }
-[data-theme="light"] .text-blue-400   { color: #3b82f6 !important; }
-[data-theme="light"] .border-blue-500\/40 { border-color: rgba(37, 99, 235, 0.25) !important; }
+[data-theme="light"] .text-blue-300   { color: #6366f1 !important; }
+[data-theme="light"] .text-blue-400   { color: #818cf8 !important; }
+[data-theme="light"] .border-blue-500\/40 { border-color: rgba(99, 102, 241, 0.25) !important; }
 
 /* Red accents */
 [data-theme="light"] .text-red-400   { color: #dc2626 !important; }
@@ -304,7 +304,7 @@ nav[class*="border-b"] {
 
 /* Active nav item in light mode */
 [data-theme="light"] .bg-blue-600 {
-  background-color: #2563eb !important;
+  background-color: #6366f1 !important;
 }
 [data-theme="light"] .bg-blue-600 .text-white,
 [data-theme="light"] .bg-blue-600 span {
@@ -356,7 +356,7 @@ nav[class*="border-b"] {
 /* Stat cards, info panels */
 [data-theme="light"] .bg-primary\/20 { background-color: rgba(37, 99, 235, 0.08) !important; }
 [data-theme="light"] .bg-primary\/10 { background-color: rgba(37, 99, 235, 0.05) !important; }
-[data-theme="light"] .text-primary { color: #2563eb !important; }
+[data-theme="light"] .text-primary { color: #6366f1 !important; }
 
 /* Gradient cards — from-gray-800 to-gray-900 */
 [data-theme="light"] .from-gray-800 { --tw-gradient-from: #ffffff !important; }
@@ -396,9 +396,9 @@ nav[class*="border-b"] {
 [data-theme="light"] .hover\:border-gray-600:hover { border-color: #cbd5e1 !important; }
 
 /* Button variants */
-[data-theme="light"] .bg-blue-600\/20 { background-color: rgba(37, 99, 235, 0.1) !important; }
-[data-theme="light"] .hover\:bg-blue-600\/30:hover { background-color: rgba(37, 99, 235, 0.15) !important; }
-[data-theme="light"] .border-blue-600\/30 { border-color: rgba(37, 99, 235, 0.2) !important; }
+[data-theme="light"] .bg-blue-600\/20 { background-color: rgba(99, 102, 241, 0.08) !important; }
+[data-theme="light"] .hover\:bg-blue-600\/30:hover { background-color: rgba(99, 102, 241, 0.14) !important; }
+[data-theme="light"] .border-blue-600\/30 { border-color: rgba(99, 102, 241, 0.18) !important; }
 
 /* ── Specific: TrackingHistoryPage icons circle ── */
 /* bg-gray-700/60 icon container — sudah ada di atas */
@@ -409,9 +409,9 @@ nav[class*="border-b"] {
 [data-theme="light"] .border-gray-700 { border-color: #e2e8f0 !important; }
 
 /* ── Stat cards with from-X-900 backgrounds ── */
-[data-theme="light"] .from-blue-900\/30 { --tw-gradient-from: rgba(219, 234, 254, 0.4) !important; }
-[data-theme="light"] .to-blue-800\/20   { --tw-gradient-to: rgba(191, 219, 254, 0.3) !important; }
-[data-theme="light"] .border-blue-700\/30 { border-color: rgba(147, 197, 253, 0.4) !important; }
+[data-theme="light"] .from-blue-900\/30 { --tw-gradient-from: rgba(237, 233, 254, 0.5) !important; }
+[data-theme="light"] .to-blue-800\/20   { --tw-gradient-to: rgba(221, 214, 254, 0.3) !important; }
+[data-theme="light"] .border-blue-700\/30 { border-color: rgba(167, 139, 250, 0.35) !important; }
 
 /* ── AdminDashboard / PetugasDashboard header buttons ── */
 [data-theme="light"] button.bg-gray-700 {
@@ -778,4 +778,166 @@ nav[class*="border-b"] {
   background-color: rgba(255, 255, 255, 0.8) !important;
   color: #374151 !important;
   border-color: #9ca3af !important;
+}
+
+/* ====================================================
+   LIGHT MODE — EXTENDED FIXES (all pages)
+   ==================================================== */
+
+/* ── Tab nav buttons (HistoryPage, TrackingHistoryPage) ── */
+[data-theme="light"] .tab-btn,
+[data-theme="light"] button[class*="rounded-full"][class*="bg-gray"] {
+  background-color: #f1f5f9 !important;
+  color: #475569 !important;
+}
+
+/* Inactive tabs with bg-gray-800/bg-gray-700 look */
+[data-theme="light"] .bg-gray-800.rounded-full,
+[data-theme="light"] .bg-gray-700.rounded-full {
+  background-color: #f1f5f9 !important;
+  color: #475569 !important;
+}
+
+/* ── Status select dropdown inside cards ── */
+[data-theme="light"] select.bg-yellow-600,
+[data-theme="light"] select.bg-blue-600,
+[data-theme="light"] select.bg-green-600,
+[data-theme="light"] select.bg-orange-500 {
+  color: #ffffff !important;
+}
+
+/* Semua select di dalam card HistoryPage */
+[data-theme="light"] .card select,
+[data-theme="light"] select[class*="bg-"] {
+  border: 1px solid var(--color-input-border) !important;
+}
+
+/* ── Card body text in HistoryPage ── */
+[data-theme="light"] .border-gray-800 { border-color: #e2e8f0 !important; }
+[data-theme="light"] .border-gray-800\/50 { border-color: rgba(226, 232, 240, 0.6) !important; }
+[data-theme="light"] .bg-gray-800\/30 { background-color: rgba(248, 250, 252, 0.8) !important; }
+[data-theme="light"] .bg-gray-800\/20 { background-color: rgba(248, 250, 252, 0.6) !important; }
+[data-theme="light"] .bg-gray-900\/50 { background-color: rgba(255, 255, 255, 0.8) !important; }
+[data-theme="light"] .bg-gray-900\/60 { background-color: rgba(255, 255, 255, 0.85) !important; }
+[data-theme="light"] .bg-gray-900\/80 { background-color: rgba(255, 255, 255, 0.9) !important; }
+
+/* ── HistoryPage card hover border ── */
+[data-theme="light"] .hover\:border-gray-600:hover { border-color: #cbd5e1 !important; }
+[data-theme="light"] .hover\:border-blue-500\/50:hover { border-color: rgba(37,99,235,0.35) !important; }
+
+/* ── Detail/Hapus buttons in HistoryPage cards ── */
+[data-theme="light"] .btn-secondary {
+  background-color: #f1f5f9 !important;
+  color: #334155 !important;
+  border: 1px solid #e2e8f0 !important;
+}
+[data-theme="light"] .btn-secondary:hover {
+  background-color: #e2e8f0 !important;
+}
+
+/* ── Orange/waiting_validation status ── */
+[data-theme="light"] .bg-orange-500\/20 { background-color: rgba(249, 115, 22, 0.1) !important; }
+[data-theme="light"] .bg-orange-600\/20 { background-color: rgba(234, 88, 12, 0.08) !important; }
+[data-theme="light"] .text-orange-300 { color: #ea580c !important; }
+[data-theme="light"] .border-orange-500\/50 { border-color: rgba(234, 88, 12, 0.35) !important; }
+
+/* ── MapPage filter panel ── */
+[data-theme="light"] .bg-gray-900.border-gray-700 {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+[data-theme="light"] .bg-gray-900\/95 { background-color: rgba(255,255,255,0.97) !important; }
+
+/* ── Specific map panel: filter & activity sidebar ── */
+[data-theme="light"] [class*="bg-gray-900"][class*="shadow"] {
+  background-color: #ffffff !important;
+}
+
+/* ── AdminDashboard & PetugasDashboard stat cards ── */
+[data-theme="light"] .bg-gradient-to-br.from-gray-800.to-gray-900 {
+  background: linear-gradient(135deg, #ffffff, #f8fafc) !important;
+}
+
+/* ── Waiting validation pulse card ── */
+[data-theme="light"] .from-orange-900\/30 { --tw-gradient-from: rgba(255, 237, 213, 0.5) !important; }
+[data-theme="light"] .to-orange-800\/20   { --tw-gradient-to: rgba(254, 215, 170, 0.3) !important; }
+[data-theme="light"] .border-orange-700\/30 { border-color: rgba(251, 146, 60, 0.35) !important; }
+
+/* ── TrackingHistoryPage session cards ── */
+[data-theme="light"] .bg-gray-700\/40 { background-color: rgba(241,245,249,0.7) !important; }
+[data-theme="light"] .bg-gray-700\/30 { background-color: rgba(241,245,249,0.5) !important; }
+[data-theme="light"] .bg-gray-700\/10 { background-color: rgba(241,245,249,0.4) !important; }
+
+/* ── Purple tones (pending status) ── */
+[data-theme="light"] .bg-purple-500\/20 { background-color: rgba(168,85,247,0.08) !important; }
+[data-theme="light"] .text-purple-300   { color: #7c3aed !important; }
+[data-theme="light"] .border-purple-500\/50 { border-color: rgba(124,58,237,0.3) !important; }
+
+/* ── Emerald (reparasi role badge) ── */
+[data-theme="light"] .bg-emerald-600\/20 { background-color: rgba(5,150,105,0.08) !important; }
+[data-theme="light"] .text-emerald-400   { color: #059669 !important; }
+
+/* ── Map status filter buttons (the pill-shaped ones) ── */
+[data-theme="light"] .border-2.bg-purple-500\/20 { background-color: rgba(168,85,247,0.08) !important; }
+
+/* ── ReparasiDashboard & MapPage popup bg fix ── */
+[data-theme="light"] .bg-\[\#0f1629\] { background-color: #f8fafc !important; }
+[data-theme="light"] .bg-\[\#1a1a2e\] { background-color: #ffffff !important; }
+[data-theme="light"] .bg-\[\#16213e\] { background-color: #f8fafc !important; }
+
+/* ── Horizontal divider lines  ── */
+[data-theme="light"] .border-gray-700\/60 { border-color: rgba(226,232,240,0.8) !important; }
+[data-theme="light"] .border-gray-700\/40 { border-color: rgba(226,232,240,0.6) !important; }
+[data-theme="light"] .border-gray-700\/30 { border-color: rgba(226,232,240,0.5) !important; }
+[data-theme="light"] .border-gray-700\/20 { border-color: rgba(226,232,240,0.4) !important; }
+
+/* ── Search bar bg ── */
+[data-theme="light"] .bg-gray-800.rounded-xl,
+[data-theme="light"] .bg-gray-800.rounded-lg,
+[data-theme="light"] .bg-gray-800.rounded-2xl {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* ── Pagination buttons ── */
+[data-theme="light"] button.bg-gray-800,
+[data-theme="light"] button.bg-gray-700 {
+  background-color: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+  color: #475569 !important;
+}
+
+/* ── Map controls bar explicit ── */
+[data-theme="light"] .map-controls-bar {
+  background-color: #ffffff !important;
+  border-bottom-color: #e2e8f0 !important;
+}
+
+/* ── ChevronDown icon in select fields ── */
+[data-theme="light"] .text-gray-400.pointer-events-none { color: #94a3b8 !important; }
+
+/* ── AdminDashboard recent tracking row hover ── */
+[data-theme="light"] .hover\:bg-gray-700\/30:hover { background-color: rgba(241,245,249,0.6) !important; }
+[data-theme="light"] .hover\:bg-gray-700\/20:hover { background-color: rgba(241,245,249,0.4) !important; }
+
+/* ── Fix remaining hardcoded text-white on non-colored elements ── */
+[data-theme="light"] p.text-white:not([class*="bg-"]),
+[data-theme="light"] span.text-white:not([class*="bg-blue"]):not([class*="bg-green"]):not([class*="bg-red"]):not([class*="bg-orange"]):not([class*="bg-yellow"]):not([class*="bg-purple"]):not([class*="bg-emerald"]) {
+  color: #1e293b !important;
+}
+
+/* ── Additional text readability in light mode ── */
+[data-theme="light"] .text-gray-200 { color: #334155 !important; }
+[data-theme="light"] .text-gray-300 { color: #475569 !important; }
+
+/* ── Card action area divider ── */
+[data-theme="light"] .border-t.border-gray-700\/50 { border-color: #e2e8f0 !important; }
+
+/* ── Empty state & no-data illustrations ── */
+[data-theme="light"] .text-gray-300.text-lg { color: #374151 !important; }
+
+/* ── Bulk select bar ── */
+[data-theme="light"] .card.bg-blue-900\/20 {
+  background-color: rgba(219, 234, 254, 0.4) !important;
+  border-color: rgba(37, 99, 235, 0.35) !important;
 }
