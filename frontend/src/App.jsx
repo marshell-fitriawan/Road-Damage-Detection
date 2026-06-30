@@ -386,39 +386,26 @@ const AppContent = () => {
   );
 
   return (
-    <>
+    <div className={isMapRoute ? "flex flex-col h-[100dvh] w-full overflow-hidden" : "flex flex-col min-h-[100dvh] w-full"}>
       {/* TopNavbar — tampil di semua halaman role */}
       {(isAdminRoute || isPetugasRoute || isReparasiRoute) && <TopNavbar />}
 
       {/* Peta: full screen, tanpa animasi transisi (agar tidak glitch) */}
       {isMapRoute ? (
-        <div
-          className="mobile-content-height lg:desktop-content-height"
-          style={{
-            width: "100%",
-            height: "calc(100vh - 57px)",
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
+        <div className="flex-1 mobile-content-height lg:desktop-content-height w-full overflow-hidden flex flex-col relative">
           <Suspense fallback={<PageLoader />}>{routes}</Suspense>
         </div>
       ) : isFullPageRoute ? (
         <PageTransition
           pageKey={location.pathname}
-          className="w-full overflow-auto"
-          style={{ minHeight: "calc(100vh - 57px)" }}
+          className="flex-1 w-full overflow-auto"
         >
           <div className="max-w-[1400px] mx-auto w-full px-4 lg:px-8">
             <Suspense fallback={<PageLoader />}>{routes}</Suspense>
           </div>
         </PageTransition>
       ) : (
-        <main
-          className="w-full"
-          style={{ minHeight: 'calc(100vh - 57px)' }}
-        >
+        <main className="flex-1 w-full">
           <PageTransition
             pageKey={location.pathname}
             className="w-full"
@@ -429,8 +416,7 @@ const AppContent = () => {
           </PageTransition>
         </main>
       )}
-
-    </>
+    </div>
   );
 };
 

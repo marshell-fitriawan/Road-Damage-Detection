@@ -406,7 +406,7 @@ const HistoryPage = () => {
 
     const checkForNewReports = async () => {
       try {
-        const res = await roadDamageService.getAll({ status: "waiting_validation", per_page: 100 });
+        const res = await roadDamageService.getAll({ status: "waiting_validation", per_page: 50 });
         const currentCount = (res.data || []).length;
 
         if (prevWaitingCount.current !== null && currentCount > prevWaitingCount.current) {
@@ -432,7 +432,7 @@ const HistoryPage = () => {
   const loadDamages = async () => {
     setLoading(true);
     try {
-      const response = await roadDamageService.getAll({ ...filters, page: currentPage, per_page: 100 });
+      const response = await roadDamageService.getAll({ ...filters, page: currentPage, per_page: 50 });
       setDamages(response.data || []);
       setTotalPages(response.last_page || 1);
     } catch (error) {
@@ -568,7 +568,7 @@ const HistoryPage = () => {
           {/* Header */}
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
-              <h1 className="text-3xl font-bold text-primary">Kelola Data Kerusakan</h1>
+              <h1 className="text-3xl font-bold text-white">Kelola Data Kerusakan</h1>
               <p className="text-gray-400 mt-1 text-sm">Lihat, periksa, ubah, atau hapus data kerusakan jalan</p>
             </div>
             <div className="flex gap-2">

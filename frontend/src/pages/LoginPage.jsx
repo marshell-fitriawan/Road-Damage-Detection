@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
@@ -13,6 +13,9 @@ import {
   X,
   Phone,
   MessageCircle,
+  Brain,
+  Activity,
+  Zap,
 } from "lucide-react";
 
 // ── Popup Kontak Admin ──────────────────────────────────────────
@@ -274,6 +277,21 @@ const LoginPage = () => {
   const location = useLocation();
   const successMessage = location.state?.message || "";
 
+  const interactiveBlobRef = useRef(null);
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (interactiveBlobRef.current) {
+        interactiveBlobRef.current.animate(
+          { transform: `translate(${e.clientX}px, ${e.clientY}px)` },
+          { duration: 2000, fill: "forwards", easing: "ease-out" }
+        );
+      }
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -301,22 +319,29 @@ const LoginPage = () => {
 
   return (
     <div
+      className="bg-secondary"
       style={{
-        minHeight: "100vh",
+        minHeight: "100dvh",
         display: "flex",
         flexDirection: "row",
-        background: isDark
-          ? "linear-gradient(135deg, #0f0c29 0%, #1a1a2e 40%, #16213e 100%)"
-          : "linear-gradient(135deg, #e0e7ff 0%, #f0f4f8 40%, #dbeafe 100%)",
         fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
         position: "relative",
         overflow: "hidden",
       }}
     >
+      {/* ── NATURAL AURORA BACKGROUND ── */}
+      <div className="bg-aurora-wrapper">
+        <div className="aurora-blob aurora-1" />
+        <div className="aurora-blob aurora-2" />
+        <div className="aurora-blob aurora-3" />
+        <div className="aurora-interactive" ref={interactiveBlobRef} />
+      </div>
+
       {/* Theme toggle — pojok kanan atas */}
       <button
         onClick={toggleTheme}
         aria-label="Toggle dark/light mode"
+        className="z-50"
         style={{
           position: "fixed",
           top: 20,
@@ -339,111 +364,106 @@ const LoginPage = () => {
         {isDark ? <Sun size={20} /> : <Moon size={20} />}
       </button>
 
-      {/* ===== SISI KIRI — Background / Branding (DESKTOP ONLY) ===== */}
+      {/* ===== SISI KIRI — Animasi & Typography ===== */}
       <div
-        className="hidden lg:flex"
+        className="hidden lg:flex relative"
         style={{
           flex: 1,
-          flexDirection: "column",
+          alignItems: "flex-start",
           justifyContent: "center",
-          alignItems: "center",
-          padding: "48px 40px",
-          position: "relative",
-          overflow: "hidden",
+          flexDirection: "column",
+          padding: "60px 80px",
+          zIndex: 10,
         }}
       >
-        {/* Decorative gradient orbs */}
-        <div
-          style={{
-            position: "absolute",
-            width: 400,
-            height: 400,
-            borderRadius: "50%",
-            background: isDark
-              ? "radial-gradient(circle, rgba(233,69,96,0.15) 0%, transparent 70%)"
-              : "radial-gradient(circle, rgba(37,99,235,0.12) 0%, transparent 70%)",
-            top: "10%",
-            left: "20%",
-            filter: "blur(60px)",
-            animation: "float-orb 8s ease-in-out infinite",
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            width: 300,
-            height: 300,
-            borderRadius: "50%",
-            background: isDark
-              ? "radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%)"
-              : "radial-gradient(circle, rgba(139,92,246,0.1) 0%, transparent 70%)",
-            bottom: "15%",
-            right: "15%",
-            filter: "blur(50px)",
-            animation: "float-orb 10s ease-in-out infinite reverse",
-          }}
-        />
-
-        {/* Logo + Brand */}
-        <div style={{ position: "relative", zIndex: 2, textAlign: "center" }}>
-          <div
-            style={{
-              width: 80,
-              height: 80,
-              borderRadius: 20,
-              background: isDark
-                ? "linear-gradient(135deg, #e94560, #8b5cf6)"
-                : "linear-gradient(135deg, #2563eb, #7c3aed)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 28px",
-              boxShadow: isDark
-                ? "0 8px 32px rgba(233,69,96,0.3)"
-                : "0 8px 32px rgba(37,99,235,0.25)",
-            }}
-          >
-            <MapPin size={40} color="#fff" />
+        {/* Decorative AI Vision Scanner */}
+        <div className="absolute right-[15%] top-[25%] hidden xl:block opacity-40 animate-float-search">
+          <div className="ai-vision-box">
+            <div className="ai-vision-corners" />
+            <div className="ai-vision-scanline" />
+            <div className="ai-vision-target" />
           </div>
-          <h2
-            style={{
-              fontSize: 28,
-              fontWeight: 800,
-              color: isDark ? "#ffffff" : "#1e293b",
-              letterSpacing: "-0.5px",
-              marginBottom: 8,
-            }}
-          >
-            Road Damage Detection
-          </h2>
-          <p
-            style={{
-              fontSize: 15,
-              color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.45)",
-              maxWidth: 320,
-              lineHeight: 1.6,
-            }}
-          >
-            Sistem Monitoring & Tracking Kerusakan Jalan
-            <br />
-            Dinas Pekerjaan Umum Kabupaten Kubu Raya
-          </p>
         </div>
 
-        {/* Placeholder note for background */}
-        <div
-          style={{
-            position: "absolute",
-            bottom: 32,
-            left: "50%",
-            transform: "translateX(-50%)",
-            fontSize: 11,
-            color: isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.15)",
-            letterSpacing: 1,
-            textTransform: "uppercase",
-          }}
-        >
-          Background Area
+        <div className="relative z-10 w-full max-w-lg">
+          {/* Badge */}
+          <div
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-6"
+            style={{
+              background: isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.03)",
+              border: `1px solid ${isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.05)"}`,
+              color: isDark ? "#94a3b8" : "#64748b",
+              fontSize: "0.8rem",
+              fontWeight: 600,
+              letterSpacing: "0.5px"
+            }}
+          >
+            <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+            Portal Resmi Kubu Raya
+          </div>
+
+          {/* Hero Title */}
+          <h1
+            style={{
+              fontSize: "3.5rem",
+              fontWeight: 800,
+              lineHeight: 1.1,
+              marginBottom: 20,
+              letterSpacing: "-1px",
+              color: isDark ? "#f8fafc" : "#0f172a",
+            }}
+          >
+            Road Damage
+            <br />
+            <span
+              className={isDark ? "text-blue-400" : "text-blue-600"}
+              style={{ display: "inline-block" }}
+            >
+              Detection System
+            </span>
+          </h1>
+
+          {/* Description */}
+          <p
+            style={{
+              fontSize: "1.1rem",
+              color: isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.6)",
+              lineHeight: 1.6,
+              marginBottom: 40,
+            }}
+          >
+            Platform cerdas pemantauan infrastruktur. Memanfaatkan Artificial Intelligence untuk mendeteksi, memetakan, dan melacak kerusakan jalan raya secara real-time di Kabupaten Kubu Raya.
+          </p>
+
+          {/* Features List */}
+          <div className="space-y-4">
+            {[
+              { icon: Brain, text: "Deteksi Kerusakan Berbasis AI Terintegrasi", color: isDark ? "#60a5fa" : "#2563eb" },
+              { icon: Activity, text: "Pemetaan Spasial & Tracking Real-time", color: isDark ? "#60a5fa" : "#2563eb" },
+              { icon: Zap, text: "Pelaporan Instan ke Dinas Pekerjaan Umum", color: isDark ? "#60a5fa" : "#2563eb" }
+            ].map((feature, idx) => (
+              <div key={idx} className="flex items-center gap-4">
+                <div
+                  className="flex items-center justify-center w-10 h-10 rounded-xl"
+                  style={{
+                    background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)",
+                    border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)"}`
+                  }}
+                >
+                  <feature.icon size={20} color={feature.color} />
+                </div>
+                <span
+                  style={{
+                    fontSize: "0.95rem",
+                    fontWeight: 500,
+                    color: isDark ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.8)"
+                  }}
+                >
+                  {feature.text}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -456,10 +476,11 @@ const LoginPage = () => {
           alignItems: "center",
           justifyContent: "center",
           padding: "32px 20px",
-          minHeight: "100vh",
+          minHeight: "100dvh",
         }}
       >
         <div
+          className="login-card-interactive"
           style={{
             width: "100%",
             maxWidth: 400,

@@ -1067,7 +1067,7 @@ const TrackingPage = () => {
     <div className="space-y-4">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold text-primary">
+        <h1 className="text-2xl font-bold text-white">
           Tracking Kerusakan Jalan
         </h1>
         <p className="text-gray-400 text-sm mt-1">

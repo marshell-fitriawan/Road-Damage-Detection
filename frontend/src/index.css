@@ -191,7 +191,7 @@ nav[class*="border-b"] {
   }
   
   .input-field {
-    @apply w-full rounded-lg px-4 py-2 focus:outline-none transition-colors;
+    @apply w-full rounded-lg px-4 py-2 text-[16px] focus:outline-none transition-colors;
     background-color: var(--color-input-bg);
     border: 1px solid var(--color-input-border);
     color: var(--color-text);
@@ -209,6 +209,187 @@ nav[class*="border-b"] {
   .theme-text-muted{ color: var(--color-text-muted); }
   .theme-border    { border-color: var(--color-border); }
   .theme-input     { background-color: var(--color-input-bg); border-color: var(--color-input-border); color: var(--color-text); }
+}
+
+/* ─────────────────────────────────────
+   NATURAL AURORA BACKGROUND
+   ───────────────────────────────────── */
+.bg-aurora-wrapper {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.aurora-blob {
+  position: absolute;
+  filter: blur(120px);
+  opacity: 0.25;
+  border-radius: 50%;
+  animation: aurora-float 20s infinite alternate ease-in-out;
+}
+
+[data-theme="dark"] .aurora-blob {
+  opacity: 0.12; /* Softer in dark mode */
+}
+
+.aurora-1 {
+  width: 60vw;
+  height: 60vh;
+  top: -20%;
+  left: -10%;
+  background: #3b82f6; /* Blue */
+}
+
+.aurora-2 {
+  width: 50vw;
+  height: 50vh;
+  bottom: -10%;
+  right: -10%;
+  background: #6366f1; /* Indigo */
+  animation-delay: -5s;
+  animation-duration: 25s;
+}
+
+.aurora-3 {
+  width: 40vw;
+  height: 40vh;
+  top: 30%;
+  left: 20%;
+  background: #0ea5e9; /* Sky Blue */
+  animation-delay: -10s;
+  animation-duration: 30s;
+}
+
+@keyframes aurora-float {
+  0% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(5%, 5%) scale(1.1); }
+  66% { transform: translate(-5%, 8%) scale(0.95); }
+  100% { transform: translate(2%, -5%) scale(1.05); }
+}
+
+.aurora-interactive {
+  position: fixed;
+  top: -200px; /* Offset by half width to center on cursor */
+  left: -200px;
+  width: 400px;
+  height: 400px;
+  background: #3b82f6; /* Blue */
+  filter: blur(120px);
+  border-radius: 50%;
+  opacity: 0.4;
+  z-index: 0;
+  pointer-events: none;
+  /* Smooth trailing animation is handled by JS animate API */
+}
+[data-theme="dark"] .aurora-interactive {
+  opacity: 0.15;
+}
+
+/* ─────────────────────────────────────
+   AI VISION DECORATION (LIGHTWEIGHT)
+   ───────────────────────────────────── */
+.ai-vision-box {
+  width: 120px;
+  height: 120px;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  pointer-events: none;
+}
+[data-theme="light"] .ai-vision-box {
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.ai-vision-corners {
+  position: absolute;
+  inset: -2px;
+  background: 
+    linear-gradient(to right, #3b82f6 2px, transparent 2px) 0 0,
+    linear-gradient(to bottom, #3b82f6 2px, transparent 2px) 0 0,
+    linear-gradient(to left, #3b82f6 2px, transparent 2px) 100% 0,
+    linear-gradient(to bottom, #3b82f6 2px, transparent 2px) 100% 0,
+    linear-gradient(to right, #3b82f6 2px, transparent 2px) 0 100%,
+    linear-gradient(to top, #3b82f6 2px, transparent 2px) 0 100%,
+    linear-gradient(to left, #3b82f6 2px, transparent 2px) 100% 100%,
+    linear-gradient(to top, #3b82f6 2px, transparent 2px) 100% 100%;
+  background-repeat: no-repeat;
+  background-size: 10px 10px;
+  animation: pulse-corners 3s infinite alternate ease-in-out;
+}
+
+.ai-vision-scanline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: rgba(59, 130, 246, 0.5);
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+  animation: scan-box 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.ai-vision-target {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444; /* Red dot representing damage */
+  top: 60%;
+  left: 40%;
+  opacity: 0;
+  animation: detect-damage 3s infinite;
+}
+
+.animate-float-search {
+  animation: float-search 15s infinite ease-in-out;
+}
+
+@keyframes float-search {
+  0% { transform: translate(0, 0) scale(1); }
+  20% { transform: translate(-40px, 30px) scale(0.95); }
+  40% { transform: translate(20px, 60px) scale(1.05); }
+  60% { transform: translate(60px, 10px) scale(0.9); }
+  80% { transform: translate(-20px, -20px) scale(1.02); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+
+@keyframes scan-box {
+  0% { top: 0; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+@keyframes pulse-corners {
+  0% { opacity: 0.3; transform: scale(0.95); }
+  100% { opacity: 0.8; transform: scale(1.05); }
+}
+
+@keyframes detect-damage {
+  0%, 55% { opacity: 0; transform: scale(0.5); }
+  60% { opacity: 1; transform: scale(1.2); box-shadow: 0 0 10px rgba(239, 68, 68, 0.6); }
+  75% { opacity: 1; transform: scale(1); }
+  90% { opacity: 0; transform: scale(1); }
+  100% { opacity: 0; }
+}
+
+/* ─────────────────────────────────────
+   LOGIN CARD INTERACTION
+   ───────────────────────────────────── */
+.login-card-interactive {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.login-card-interactive:active {
+  transform: scale(0.98);
+}
+.login-card-interactive:focus-within {
+  border-color: rgba(59, 130, 246, 0.4) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.5), 0 16px 50px rgba(59, 130, 246, 0.15) !important;
+}
+[data-theme="dark"] .login-card-interactive:focus-within {
+  border-color: rgba(96, 165, 250, 0.5) !important;
+  box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.6), 0 20px 60px rgba(96, 165, 250, 0.2), inset 0 1px 0 rgba(255,255,255,0.05) !important;
 }
 
 /* ─────────────────────────────────────

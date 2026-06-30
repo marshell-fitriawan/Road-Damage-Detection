@@ -25,6 +25,7 @@ import {
   Upload,
   Wrench,
 } from "lucide-react";
+import imageCompression from "browser-image-compression";
 
 const POLL_INTERVAL = 5000;
 
@@ -538,8 +539,28 @@ const LaporPerbaikanModal = ({ marker, onClose, onSubmit, submitting }) => {
     onSubmit({ photo, notes });
   };
 
-  const handlePhotoChange = (e) => {
-    setPhoto(e.target.files?.[0] || null);
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      setPhoto(null);
+      return;
+    }
+
+    try {
+      // Terapkan kompresi image (<300KB)
+      const options = {
+        maxSizeMB: 0.3, // Maksimal 300KB
+        maxWidthOrHeight: 1280,
+        useWebWorker: true,
+      };
+      
+      const compressedFile = await imageCompression(file, options);
+      setPhoto(compressedFile);
+    } catch (error) {
+      console.error("Gagal mengompres gambar:", error);
+      // Fallback ke file asli jika kompresi gagal
+      setPhoto(file);
+    }
   };
 
   const handleClose = () => {

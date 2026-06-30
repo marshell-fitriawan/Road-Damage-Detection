@@ -177,7 +177,7 @@ const TrackingHistoryPage = ({ showAll = false }) => {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-primary">
+              <h1 className="text-3xl font-bold text-white">
                 {showAll
                   ? "Riwayat Tracking Semua Petugas"
                   : "Riwayat Tracking Saya"}
