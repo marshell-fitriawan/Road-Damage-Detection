@@ -964,9 +964,9 @@ const TrackingPage = () => {
       } catch (err) {
         console.error("Detection error:", err);
       }
-    };
-    intervalRef.current = setInterval(sendFrame, DETECTION_INTERVAL_MS);
-    sendFrame();
+    // Pilihan A: Nonaktifkan sementara panggilan AI YOLO sampai server Python dihosting
+    // intervalRef.current = setInterval(sendFrame, DETECTION_INTERVAL_MS);
+    // sendFrame();
   };
 
   const saveBestDetection = async (sessionId, canvas, detection) => {
