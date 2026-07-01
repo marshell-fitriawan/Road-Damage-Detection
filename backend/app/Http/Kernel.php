@@ -40,7 +40,7 @@ class Kernel extends HttpKernel
 
         'api' => [
             // Token-based auth only (no CSRF needed)
-            \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
+            // \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],
     ];
