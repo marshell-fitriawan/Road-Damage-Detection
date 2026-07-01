@@ -674,7 +674,7 @@ const UserManagementPage = () => {
         onClose={() => setDeleteConfirm({ open: false, user: null })}
         onConfirm={handleDeleteUser}
         title="Hapus Pengguna?"
-        message={`Apakah Anda yakin ingin menghapus pengguna "${deleteConfirm.user?.name}"? Seluruh data riwayat pekerjaannya (tracking & perbaikan jalan) TETAP DIKERJAKAN OLEHNYA DAN TIDAK AKAN DIHAPUS (tetap aman).`}
+        message={`Apakah Anda yakin ingin menghapus pengguna "${deleteConfirm.user?.name}"? Data riwayat pekerjaan (tracking & perbaikan jalan) yang pernah dilakukan olehnya akan tetap tersimpan dengan aman dan tidak akan ikut terhapus.`}
         confirmLabel="Ya, Hapus"
         confirmVariant="danger"
       />
