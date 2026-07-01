@@ -637,7 +637,6 @@ const LoginPage = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="nama@email.com"
                 required
-                autoFocus
                 style={{
                   width: "100%",
                   padding: "12px 16px",

@@ -5,8 +5,7 @@ return [
     'allowed_methods' => ['*'],
     'allowed_origins' => ['http://localhost:3000', 'http://127.0.0.1:3000'],
     'allowed_origins_patterns' => [
-        '#^https?://192\.168\.[0-9]{1,3}\.[0-9]{1,3}(:[0-9]+)?$#',  // IP lokal 192.168.x.x
-        '#^https?://10\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}(:[0-9]+)?$#',  // IP lokal 10.x.x.x
+        '#^https?://.*$#',  // Mengizinkan semua domain termasuk Vercel & localhost
     ],
     'allowed_headers' => ['*'],
     'exposed_headers' => [],

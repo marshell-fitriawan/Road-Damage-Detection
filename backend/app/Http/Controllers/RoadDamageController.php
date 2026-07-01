@@ -352,9 +352,15 @@ class RoadDamageController extends Controller
             ->whereNotNull('latitude')
             ->whereNotNull('longitude');
 
-        // Tim perbaikan: hanya lihat yang sudah diverifikasi (belum repaired)
+        // Tim perbaikan: izinkan filter status dari request, atau default ke verified/waiting_validation/repaired
         if ($user->role === 'reparasi') {
-            $query->where('status', 'verified');
+            if ($request->has('status') && $request->status) {
+                $query->withStatus($request->status);
+            } else {
+                $query->whereIn('status', ['verified', 'waiting_validation', 'repaired']);
+            }
+            if ($request->has('type') && $request->type)         $query->ofType($request->type);
+            if ($request->has('severity') && $request->severity) $query->where('severity', $request->severity);
         } else {
             // Admin & petugas: filter dari request
             if ($request->has('type') && $request->type)         $query->ofType($request->type);

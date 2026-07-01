@@ -315,7 +315,7 @@ const DetailModal = ({ damage, editingNotes, setEditingNotes, onSaveNotes, onClo
                   <div className={`flex items-center gap-3 border rounded-xl px-4 py-3 ${infoRow}`}>
                     <User className="w-4 h-4 text-purple-400 flex-shrink-0" />
                     <div>
-                      <p className={`text-[11px] uppercase tracking-wide ${labelText}`}>Petugas</p>
+                      <p className={`text-[11px] uppercase tracking-wide ${labelText}`}>Petugas Lapangan</p>
                       <p className={`text-sm font-semibold ${rowText}`}>{damage.tracking_session.user.name}</p>
                     </div>
                   </div>
@@ -329,6 +329,30 @@ const DetailModal = ({ damage, editingNotes, setEditingNotes, onSaveNotes, onClo
                     </p>
                   </div>
                 </div>
+                {(damage.status === "repaired" || damage.status === "waiting_validation" || damage.repaired_by || damage.repaired_by_name || damage.repair_photo_path) && (
+                  <>
+                    <div className={`flex items-center gap-3 border rounded-xl px-4 py-3 ${infoRow}`}>
+                      <Wrench className="w-4 h-4 text-orange-400 flex-shrink-0" />
+                      <div>
+                        <p className={`text-[11px] uppercase tracking-wide ${labelText}`}>Petugas Perbaikan</p>
+                        <p className={`text-sm font-semibold ${rowText}`}>
+                          {damage.repaired_by?.name || damage.repairedBy?.name || damage.repaired_by_name || (typeof damage.repaired_by === "string" && isNaN(damage.repaired_by) ? damage.repaired_by : "Tim Perbaikan")}
+                        </p>
+                      </div>
+                    </div>
+                    <div className={`flex items-center gap-3 border rounded-xl px-4 py-3 ${infoRow}`}>
+                      <Calendar className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                      <div>
+                        <p className={`text-[11px] uppercase tracking-wide ${labelText}`}>Waktu Perbaikan</p>
+                        <p className={`text-sm ${rowText}`}>
+                          {(damage.repaired_at || damage.repairedAt || damage.updated_at)
+                            ? format(new Date(damage.repaired_at || damage.repairedAt || damage.updated_at), "dd MMMM yyyy, HH:mm", { locale: id })
+                            : "-"}
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Notes */}

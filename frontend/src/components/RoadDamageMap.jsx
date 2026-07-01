@@ -732,7 +732,9 @@ const DamageClusterLayer = ({ markers, getDamageColor, getSeveritySize, theme, o
               <span style="color:#6b7280">Confidence</span>
               <span style="font-weight:600;color:${color}">${(marker.confidence * 100).toFixed(1)}%</span>
             </div>
-            ${marker.petugas_name ? `<div style="display:flex;justify-content:space-between"><span style="color:#6b7280">Petugas</span><span style="font-weight:600">${marker.petugas_name}</span></div>` : ''}
+            ${marker.petugas_name ? `<div style="display:flex;justify-content:space-between"><span style="color:#6b7280">Petugas Lapangan</span><span style="font-weight:600">${marker.petugas_name}</span></div>` : ''}
+            ${marker.repaired_by_name ? `<div style="display:flex;justify-content:space-between"><span style="color:#6b7280">Tim Perbaikan</span><span style="font-weight:600;color:#d97706">${marker.repaired_by_name}</span></div>` : ''}
+            ${marker.repaired_at ? `<div style="display:flex;justify-content:space-between"><span style="color:#6b7280">Waktu Perbaikan</span><span style="font-weight:600;color:#059669;font-size:11px">${marker.repaired_at}</span></div>` : ''}
             ${isOtherVerified ? `<div style="margin-top:6px;padding:5px 7px;background:#ecfeff;color:#0891b2;border-radius:6px;font-size:11px;font-weight:700;text-align:center">Marker Petugas Lain</div>` : ''}
           </div>
           ${onRepairClick && marker.status === 'verified' ? `<button class="repair-report-btn" data-marker-id="${marker.id}" style="width:100%;margin-top:8px;text-align:center;padding:7px;background:#16a34a;color:white;border:0;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">✓ Lapor Sudah Diperbaiki</button>` : ''}

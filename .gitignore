@@ -66,3 +66,7 @@ desktop.ini
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Large archives and backups
+*.zip
+*.sql
