@@ -270,6 +270,11 @@ export const userService = {
     const response = await api.post(`/users/${id}/toggle-active`);
     return response.data;
   },
+
+  delete: async (id) => {
+    const response = await api.delete(`/users/${id}`);
+    return response.data;
+  },
 };
 
 export default api;

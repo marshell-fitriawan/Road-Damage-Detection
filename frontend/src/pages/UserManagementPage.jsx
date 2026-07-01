@@ -20,6 +20,7 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
+  Trash2,
 } from "lucide-react";
 
 const getRoleLabel = (role) => {
@@ -214,6 +215,7 @@ const UserManagementPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [toggleConfirm, setToggleConfirm] = useState({ open: false, userId: null, isActive: false });
+  const [deleteConfirm, setDeleteConfirm] = useState({ open: false, user: null });
 
   useEffect(() => {
     loadUsers();
@@ -269,6 +271,7 @@ const UserManagementPage = () => {
       password: "",
       role: user.role,
     });
+    setFormError("");
     setShowForm(true);
     setViewingUser(null);
   };
@@ -283,6 +286,24 @@ const UserManagementPage = () => {
     } catch (error) {
       console.error("Error toggling user:", error);
       toast.error("Gagal mengubah status pengguna.");
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    const user = deleteConfirm.user;
+    if (!user) return;
+    setDeleteConfirm({ open: false, user: null });
+    try {
+      await userService.delete(user.id);
+      toast.success(`Pengguna "${user.name}" berhasil dihapus.`);
+      if (editingUser && editingUser.id === user.id) {
+        setShowForm(false);
+        setEditingUser(null);
+      }
+      loadUsers();
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      toast.error(error.response?.data?.message || "Gagal menghapus pengguna.");
     }
   };
 
@@ -443,13 +464,25 @@ const UserManagementPage = () => {
                     <option value="admin">Administrator</option>
                   </select>
                 </div>
-                <div className="md:col-span-2 flex gap-3">
-                  <button type="submit" className="btn-primary">
-                    {editingUser ? "Simpan Perubahan" : "Buat Akun"}
-                  </button>
-                  <button type="button" onClick={handleCancelForm} className="btn-secondary">
-                    Batal
-                  </button>
+                <div className="md:col-span-2 flex justify-between items-center pt-2">
+                  <div className="flex gap-3">
+                    <button type="submit" className="btn-primary">
+                      {editingUser ? "Simpan Perubahan" : "Buat Akun"}
+                    </button>
+                    <button type="button" onClick={handleCancelForm} className="btn-secondary">
+                      Batal
+                    </button>
+                  </div>
+                  {editingUser && (
+                    <button
+                      type="button"
+                      onClick={() => setDeleteConfirm({ open: true, user: editingUser })}
+                      className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors flex items-center gap-2 shadow-lg hover:shadow-red-500/20"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Hapus Pengguna
+                    </button>
+                  )}
                 </div>
               </form>
             </div>
@@ -559,6 +592,15 @@ const UserManagementPage = () => {
                         <ToggleLeft className="w-6 h-6 text-gray-500" />
                       )}
                     </button>
+
+                    {/* Hapus */}
+                    <button
+                      onClick={() => setDeleteConfirm({ open: true, user: user })}
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-600/10 transition-all"
+                      title="Hapus Pengguna"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               ))}
@@ -623,6 +665,17 @@ const UserManagementPage = () => {
         title="Buang Perubahan?"
         message="Anda memiliki perubahan yang belum disimpan. Yakin ingin menutup form ini?"
         confirmLabel="Ya, Buang"
+        confirmVariant="danger"
+      />
+
+      {/* Confirm Hapus Pengguna */}
+      <ConfirmModal
+        isOpen={deleteConfirm.open}
+        onClose={() => setDeleteConfirm({ open: false, user: null })}
+        onConfirm={handleDeleteUser}
+        title="Hapus Pengguna?"
+        message={`Apakah Anda yakin ingin menghapus pengguna "${deleteConfirm.user?.name}"? Seluruh data riwayat pekerjaannya (tracking & perbaikan jalan) TETAP DIKERJAKAN OLEHNYA DAN TIDAK AKAN DIHAPUS (tetap aman).`}
+        confirmLabel="Ya, Hapus"
         confirmVariant="danger"
       />
 

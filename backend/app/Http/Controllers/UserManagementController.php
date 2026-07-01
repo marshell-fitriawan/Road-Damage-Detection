@@ -134,4 +134,41 @@ class UserManagementController extends Controller
             'user'    => $user,
         ]);
     }
+
+    /**
+     * Delete user (admin only)
+     * Soft deletes user while preserving all work history (tracking & road repair records)
+     */
+    public function destroy($id)
+    {
+        // Automatically add deleted_at column if it does not exist in the MySQL table yet
+        if (!\Illuminate\Support\Facades\Schema::hasColumn('users', 'deleted_at')) {
+            \Illuminate\Support\Facades\Schema::table('users', function (\Illuminate\Database\Schema\Blueprint $table) {
+                $table->softDeletes();
+            });
+        }
+
+        $user = User::findOrFail($id);
+
+        if ($user->id === auth()->id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak dapat menghapus akun Anda sendiri.',
+            ], 400);
+        }
+
+        // Free up email so it can be registered again in the future without unique constraint collision
+        $user->email = $user->email . '.deleted.' . time();
+        $user->is_active = false;
+        $user->tokens()->delete();
+        $user->save();
+
+        // Soft delete user (maintains historical tracking & repair data)
+        $user->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Pengguna berhasil dihapus. Data riwayat pekerjaan tetap dipertahankan.',
+        ]);
+    }
 }

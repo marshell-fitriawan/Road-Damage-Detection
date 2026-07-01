@@ -72,6 +72,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{id}', [UserManagementController::class, 'show']);
             Route::put('/{id}', [UserManagementController::class, 'update']);
             Route::post('/{id}/toggle-active', [UserManagementController::class, 'toggleActive']);
+            Route::delete('/{id}', [UserManagementController::class, 'destroy']);
         });
 
         // All tracking sessions (admin view)

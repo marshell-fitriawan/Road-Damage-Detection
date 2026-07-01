@@ -53,7 +53,7 @@ class RoadDamage extends Model
     /** User (reparasi) who repaired this damage */
     public function repairedBy()
     {
-        return $this->belongsTo(User::class, 'repaired_by');
+        return $this->belongsTo(User::class, 'repaired_by')->withTrashed();
     }
 
     /** Get severity level based on damage type and area */
