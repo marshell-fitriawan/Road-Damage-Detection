@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import imageCompression from "browser-image-compression";
 
-const POLL_INTERVAL = 5000;
+const POLL_INTERVAL = 8000;
 
 // Warna berbeda tiap rute petugas (sinkron dengan RoadDamageMap.petugasColors)
 const ROUTE_COLORS = [

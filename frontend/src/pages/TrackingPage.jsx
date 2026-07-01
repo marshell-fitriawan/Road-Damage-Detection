@@ -35,7 +35,7 @@ import MapPickerModal from "../components/MapPickerModal";
 const DETECTION_INTERVAL_MS = 800;
 const SEND_WIDTH = 640;
 const JPEG_QUALITY = 0.7;
-const GPS_INTERVAL_MS = 1000;
+const GPS_INTERVAL_MS = 3000;
 const GPS_MIN_DISTANCE_M = 5;
 
 const getDistanceMeters = (lat1, lng1, lat2, lng2) => {
