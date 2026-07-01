@@ -18,18 +18,27 @@ import { useTheme } from "../contexts/ThemeContext";
  */
 const ConfirmModal = ({
   isOpen,
-  type = "danger",
+  type,
+  confirmVariant,
   title = "Konfirmasi",
   message = "",
-  confirmLabel = "Ya, Hapus",
-  cancelLabel = "Batal",
+  confirmLabel,
+  confirmText,
+  cancelLabel,
+  cancelText,
   onConfirm,
   onCancel,
+  onClose,
   loading = false,
 }) => {
   const { isDark } = useTheme();
 
   if (!isOpen) return null;
+
+  const handleClose = onCancel || onClose || (() => {});
+  const activeType = type || confirmVariant || "danger";
+  const activeConfirmLabel = confirmLabel || confirmText || "Ya, Hapus";
+  const activeCancelLabel = cancelLabel || cancelText || "Batal";
 
   const config = {
     danger: {
@@ -53,6 +62,13 @@ const ConfirmModal = ({
       btnClass: "bg-blue-600 hover:bg-blue-500 text-white",
       accent: "#3b82f6",
     },
+    primary: {
+      icon: Info,
+      iconBg: "bg-blue-500/15 border border-blue-500/30",
+      iconColor: "text-blue-500",
+      btnClass: "bg-blue-600 hover:bg-blue-500 text-white",
+      accent: "#3b82f6",
+    },
     success: {
       icon: CheckCircle2,
       iconBg: "bg-green-500/15 border border-green-500/30",
@@ -62,7 +78,7 @@ const ConfirmModal = ({
     },
   };
 
-  const { icon: Icon, iconBg, iconColor, btnClass, accent } = config[type] || config.danger;
+  const { icon: Icon, iconBg, iconColor, btnClass, accent } = config[activeType] || config.danger;
 
   // Theme-aware classes
   const modalBg   = isDark ? "bg-[#1a2035] border-gray-700/70" : "bg-white border-gray-200";
@@ -83,7 +99,7 @@ const ConfirmModal = ({
         background: "rgba(0,0,0,0.55)",
         backdropFilter: "blur(8px)",
       }}
-      onClick={onCancel}
+      onClick={handleClose}
     >
       <div
         className={`border rounded-2xl shadow-2xl w-full max-w-sm p-6 relative ${modalBg}`}
@@ -106,7 +122,7 @@ const ConfirmModal = ({
 
         {/* Close button */}
         <button
-          onClick={onCancel}
+          onClick={handleClose}
           className={`absolute top-4 right-4 w-7 h-7 rounded-full flex items-center justify-center transition-colors ${closeCls}`}
         >
           <X className="w-3.5 h-3.5" />
@@ -122,11 +138,11 @@ const ConfirmModal = ({
 
         <div className="flex gap-3">
           <button
-            onClick={onCancel}
+            onClick={handleClose}
             disabled={loading}
             className={`flex-1 px-4 py-2.5 rounded-xl font-semibold text-sm transition-colors disabled:opacity-50 ${cancelCls}`}
           >
-            {cancelLabel}
+            {activeCancelLabel}
           </button>
           <button
             onClick={onConfirm}
@@ -139,7 +155,7 @@ const ConfirmModal = ({
                 Memproses...
               </>
             ) : (
-              confirmLabel
+              activeConfirmLabel
             )}
           </button>
         </div>
